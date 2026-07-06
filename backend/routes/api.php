@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ParcelController;
 use App\Http\Controllers\FarmerController; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\CooperativeDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,6 +35,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('farmers', FarmerController::class);
 
     // Route untuk menyimpan Lahan Spasial Baru
-    Route::post('/parcels', [ParcelController::class, 'store']);
-    
+    Route::post('/parcels', [ParcelController::class, 'store']); 
 });
+
+// untuk dasboard admin koprasi
+Route::get('/cooperative/dashboard', [CooperativeDashboardController::class, 'getKoperasiData']);

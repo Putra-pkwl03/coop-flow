@@ -71,7 +71,7 @@ export default function AdminLapanganDashboard() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-zinc-800 antialiased font-sans pb-12">
       {/* Top Header & Navbar sesuai image_761adf.jpg */}
-      <Navbar adminName={adminName} handleLogout={handleLogout} />
+      <Navbar adminName={adminName} roleName="Admin Lapangan" handleLogout={handleLogout} />
       
       {/* Konten Utama Tengah */}
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-10 mt-6">
