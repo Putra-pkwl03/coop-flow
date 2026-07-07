@@ -9,15 +9,18 @@ const api = axios.create({
   },
 });
 
-// Interceptor untuk menyisipkan Bearer Token otomatis pada setiap request ke route protected
-if (typeof window !== 'undefined') {
-  api.interceptors.request.use((config) => {
+// Pendaftaran interseptor tidak perlu dibungkus IF window
+api.interceptors.request.use((config) => {
+  // Pengecekan window dilakukan DI DALAM saat ingin mengakses localStorage
+  if (typeof window !== 'undefined') {
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    return config;
-  });
-}
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
 
 export default api;

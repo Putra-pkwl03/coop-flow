@@ -8,6 +8,7 @@ use App\Http\Controllers\PlantController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CooperativeDashboardController;
+use App\Http\Controllers\Api\Cooperative\InventoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,6 +50,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // untuk dasboard admin koprasi
     Route::get('/cooperative/dashboard', [CooperativeDashboardController::class, 'getKoperasiData']);
+
+    //untuk fitur stok-inventaris
+    Route::prefix('cooperative/inventory')->group(function () {
+        Route::get('/overview', [InventoryController::class, 'getOverview']);
+        Route::get('/history', [InventoryController::class, 'getMutationHistory']);
+        Route::post('/mutation', [InventoryController::class, 'storeMutation']);
+    });
 
 });    
 
