@@ -9,10 +9,9 @@ const api = axios.create({
   },
 });
 
-// Interceptor ditaruh di luar IF agar selalu terdaftar
+
 api.interceptors.request.use(
   (config) => {
-    // Pengecekan window dipindahkan ke dalam sini
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('access_token');
       if (token) {
@@ -25,5 +24,6 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
 
 export default api;

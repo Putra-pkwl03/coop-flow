@@ -95,8 +95,19 @@ export default function Sidebar({ handleLogout }: SidebarProps) {
         <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-160px)] scrollbar-thin">
           {menuItems.map((item, idx) => {
             const Icon = item.icon;
-            // Otomatis active jika pathname URL di browser sama dengan href menu
-            const isActive = pathname === item.href;
+            
+            // ===================================================================
+            // PERBAIKAN DETAIL KECIL: LOGIKA AKURASI DETEKSI URL SUB-PAGE LOGISTIK
+            // ===================================================================
+            let isActive = pathname === item.href;
+
+            if (item.href === "/dashboard/admin-koprasi/stok-inventaris") {
+              // Tetap menyala jika admin membuka /stok-inventaris, /riwayat, maupun /mutasi
+              isActive = pathname.startsWith("/dashboard/admin-koprasi/stok-inventaris");
+            } else if (item.href === "/dashboard/admin-koprasi") {
+              // Dashboard Utama hanya aktif jika URL pas (mencegah bentrok dengan sub-page fitur lain)
+              isActive = pathname === "/dashboard/admin-koprasi";
+            }
 
             return (
               <Link
@@ -119,7 +130,7 @@ export default function Sidebar({ handleLogout }: SidebarProps) {
                   <span>{item.name}</span>
                 </div>
 
-                {/* Panah kecil penunjuk kanan seperti di referensi jika menu tidak aktif */}
+                {/* Panah kecil penunjuk kanan jika menu tidak aktif */}
                 {!isActive && (
                   <span className="text-[9px] text-slate-600 group-hover:text-slate-400 transition-transform group-hover:translate-x-0.5">
                     &rarr;
