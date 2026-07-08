@@ -32,7 +32,7 @@ export default function ValidationFarmerList({
   // State filter yang telah diaplikasikan
   const [appliedFilters, setAppliedFilters] = useState({
     status: 'Semua Status',
-    wilayah: '', // Menyimpan kode desa (village.code) secara dinamis
+    wilayah: '', 
     group: '',
     startDate: '',
     endDate: ''
@@ -57,7 +57,7 @@ export default function ValidationFarmerList({
       return { ...farmer, lands: filteredLands };
     }).filter(f => {
       const isCurrentActiveFarmer = selectedFarmer && selectedFarmer.id === f.id;
-      if (f.lands.length === 0 && !isCurrentActiveFarmer) return false;
+      if (f.lands.length === 0 && !isCurrentActiveFarmer) return true;
       
       const name = f.user?.name || '';
       const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || f.nik.includes(searchTerm);

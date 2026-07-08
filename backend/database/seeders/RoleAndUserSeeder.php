@@ -22,7 +22,7 @@ class RoleAndUserSeeder extends Seeder
         $rolePetugasKoperasi  = Role::create(['name' => 'petugas-koperasi']);
         $roleDinasPertanian   = Role::create(['name' => 'dinas-pertanian']);
         $roleKemenkoPangan    = Role::create(['name' => 'kemenko-pangan']);
-        $rolePetani           = Role::create(['name' => 'petani']); // Tetap kita buat untuk register umum nanti
+        $rolePetani           = Role::create(['name' => 'petani']);
 
         // 3. Buat Akun Akun Contoh / Default untuk Masing-Masing Instansi
 

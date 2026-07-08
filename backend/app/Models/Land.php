@@ -28,10 +28,19 @@ class Land extends Model
         'ownership_document', 
         'location_address',
         'polygon_coordinates', 
+
+        'center_latitude',
+        'center_longitude',
+        'average_temperature',
+        'average_humidity',
+        'average_monthly_precipitation'
     ];
 
     protected $casts = [
         'polygon_coordinates' => 'array',
+        'average_temperature' => 'float',
+        'average_humidity' => 'integer',
+        'average_monthly_precipitation' => 'float',
     ];
 
     /**

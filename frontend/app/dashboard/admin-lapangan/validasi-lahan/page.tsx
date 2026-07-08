@@ -17,6 +17,8 @@ export interface Land {
   farmer_id?: number;
   land_name: string;
   area: string | number;
+  unit?: string;   // 🌟 TAMBAHKAN INI (gunakan ? karena nullable/opsional)
+  status?: string; // 🌟 TAMBAHKAN INI
   location_address?: string;
   polygon_coordinates?: [number, number][]; 
   village_id?: string; 
@@ -24,6 +26,7 @@ export interface Land {
   city_id?: string;
   district_id?: string;
 }
+
 
 // Tambahkan properti village ke dalam interface Farmer Anda yang sudah ada
 export interface Farmer {
@@ -146,88 +149,129 @@ export default function ValidasiLahanPage() {
     setActiveTab(tab);
   };
 
-  const handleSaveMapping = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedFarmer || !selectedLand) return;
+const handleSaveMapping = async (
+  eOrClimateData: React.FormEvent | any, 
+  optionalClimateData?: any
+) => {
+  // 🌟 KUNCI PERBAIKAN STATE EVENT
+  let agroClimateData = optionalClimateData;
 
-    try {
-      const payload = {
-        name: selectedFarmer.user?.name || '',
-        email: selectedFarmer.user?.email || '',
-        phone: selectedFarmer.user?.phone || null,
-        address: selectedFarmer.user?.address || null,
-        farmer_group_id: selectedFarmer.farmer_group?.id || null,
-        nik: selectedFarmer.nik,
-        notes: selectedFarmer.notes || null,
+  // Deteksi: Jika parameter pertama memiliki preventDefault, berarti dipanggil dari onSubmit Form biasa
+  if (eOrClimateData && typeof eOrClimateData.preventDefault === 'function') {
+    eOrClimateData.preventDefault();
+  } else if (eOrClimateData && !optionalClimateData) {
+    // Jika dipanggil dari onSave MapWorkspace, parameter pertama adalah objek data iklimnya
+    agroClimateData = eOrClimateData;
+  }
+
+  if (!selectedFarmer || !selectedLand) return;
+
+  try {
+  const payload = {
+  name: (selectedFarmer.user?.name || '').trim(),
+  email: (selectedFarmer.user?.email || '').trim(),
+  phone: selectedFarmer.user?.phone || null,
+  address: selectedFarmer.user?.address || null,
+  farmer_group_id: selectedFarmer.farmer_group?.id || null,
+  nik: String(selectedFarmer.nik).trim(),
+  notes: selectedFarmer.notes || null,
+  
+  lands: selectedFarmer.lands?.map((land) => {
+    if (land.id === selectedLand.id) {
+      return {
+        id: land.id, 
+        land_name: land.land_name,
+        area: parseFloat(areaHectares) || 0, 
+        unit: land.unit || 'Hektar(Ha)', // 🌟 Ditambahkan agar lolos required backend
+        status: land.status || 'Milik Sendiri', // 🌟 Ditambahkan agar lolos required backend
+        location_address: land.location_address || null,
         
-        lands: selectedFarmer.lands?.map((land) => {
-          if (land.id === selectedLand.id) {
-            return {
-              id: land.id, 
-              land_name: land.land_name,
-              area: parseFloat(areaHectares), 
-              location_address: land.location_address || null,
-              polygon_coordinates: polygonCoordinates, 
-              planting_date: plantingDate, 
-            };
-          }
-          return {
-            id: land.id, 
-            land_name: land.land_name,
-            area: parseFloat(land.area as string),
-            location_address: land.location_address || null,
-            polygon_coordinates: land.polygon_coordinates || null, 
-          };
-        }) || []
+        // 🌟 Biarkan berupa array asli (tanpa JSON.stringify) karena BE meminta |array
+        polygon_coordinates: polygonCoordinates, 
+        planting_date: plantingDate, 
+
+        center_latitude: agroClimateData?.center_latitude || null,
+        center_longitude: agroClimateData?.center_longitude || null,
+        average_temperature: agroClimateData?.average_temperature || null,
+        average_humidity: agroClimateData?.average_humidity || null,
+        average_monthly_precipitation: agroClimateData?.average_monthly_precipitation || null,
       };
+    }
+    
+    // Untuk data lahan lainnya, kirimkan kembali struktur aslinya secara utuh
+    return {
+      id: land.id, 
+      land_name: land.land_name,
+      area: parseFloat(land.area as string) || 0,
+      unit: land.unit || 'Hektar(Ha)', 
+      status: land.status || 'Milik Sendiri', 
+      location_address: land.location_address || null,
+      polygon_coordinates: land.polygon_coordinates || null, 
+      center_latitude: (land as any).center_latitude || null,
+      center_longitude: (land as any).center_longitude || null,
+      average_temperature: (land as any).average_temperature || null,
+      average_humidity: (land as any).average_humidity || null,
+      average_monthly_precipitation: (land as any).average_monthly_precipitation || null,
+    };
+  }) || []
+};
 
-      const response = await api.put(`/farmers/${selectedFarmer.id}`, payload);
+    const response = await api.put(`/farmers/${selectedFarmer.id}`, payload);
 
-      if (response.data.success) {
-        const Toast = Swal.mixin({
-          toast: true,
-          position: 'top-end',
-          showConfirmButton: false,
-          timer: 3000,
-          timerProgressBar: true,
-          didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer);
-            toast.addEventListener('mouseleave', Swal.resumeTimer);
-          }
-        });
-
-        Toast.fire({
-          icon: 'success',
-          title: `Geospasial "${selectedLand.land_name}" berhasil disinkronisasi!`
-        });
-
-        setSelectedFarmer(null);
-        setSelectedLand(null);
-        setPolygonCoordinates([]);
-        
-        await fetchFarmers(); 
-
-        setTimeout(() => {
-          window.dispatchEvent(new Event('resize'));
-        }, 100);
-      }
-    } catch (error: any) {
-      console.error("Gagal sinkronisasi ke backend", error);
-      
-      const ToastError = Swal.mixin({
+    if (response.data.success) {
+      const Toast = Swal.mixin({
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
-        timer: 4000,
-        timerProgressBar: true
+        timer: 3000,
+        timerProgressBar: true,
       });
 
-      ToastError.fire({
-        icon: 'error',
-        title: error.response?.data?.message || 'Gagal menyimpan ke server backend.'
+      Toast.fire({
+        icon: 'success',
+        title: `Geospasial "${selectedLand.land_name}" berhasil disinkronisasi!`
       });
+
+      setSelectedFarmer(null);
+      setSelectedLand(null);
+      setPolygonCoordinates([]);
+      
+      await fetchFarmers(); 
+
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 100);
     }
-  };
+  } catch (error: any) {
+    console.error("Gagal sinkronisasi ke backend", error);
+    
+    // 🔍 AMBIL PESAN ERROR VALIDASI DETIL DARI LARAVEL
+    const validationErrors = error.response?.data?.errors;
+    let errorMessage = 'Gagal menyimpan ke server backend.';
+
+    if (validationErrors) {
+      // Menggabungkan semua pesan error validasi menjadi satu string kalimat
+      errorMessage = Object.values(validationErrors).flat().join(', ');
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    }
+
+    const ToastError = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 6000, // Diperlama sedikit agar terbaca jelas errornya apa
+      timerProgressBar: true
+    });
+
+    ToastError.fire({
+      icon: 'error',
+      title: 'Gagal Validasi:',
+      text: errorMessage
+    });
+  }
+};
+
 
 return (
   <div className="min-h-screen bg-[#f8fafc] text-zinc-800 antialiased font-sans pb-12">
@@ -292,6 +336,7 @@ return (
             initialPolygon={polygonCoordinates} 
             allFarmersData={farmers} 
             selectedLandId={selectedLand?.id || null} 
+            selectedLandData={selectedLand}
             onSelectLandDirectly={handleSelectLandForMapping}
             activeTab={activeTab} 
             calculatedAreaText={areaHectares}

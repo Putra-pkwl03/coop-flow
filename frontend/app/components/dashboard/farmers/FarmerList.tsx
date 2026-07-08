@@ -73,7 +73,7 @@ export default function FarmerList({
   onFilterRegionChange 
 }: FarmerListProps) {
   
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(true);
 
   const [filterDistrict, setFilterDistrict] = useState('');
   const [filterVillage, setFilterVillage] = useState('');

@@ -14,14 +14,14 @@ use Illuminate\Support\Facades\Storage;
 class FarmerController extends Controller
 {
     public function index()
-{
-    $farmers = Farmer::with(['user', 'farmer_group', 'lands.plants', 'village'])->latest()->get();
+    {
+        $farmers = Farmer::with(['user', 'farmer_group', 'lands.plants', 'village'])->latest()->get();
 
-    return response()->json([
-        'success' => true,
-        'data' => $farmers
-    ], 200);
-}
+        return response()->json([
+            'success' => true,
+            'data' => $farmers
+        ], 200);
+    }
 
     public function store(Request $request)
     {
@@ -62,6 +62,11 @@ class FarmerController extends Controller
             'lands.*.ownership_document' => 'nullable|file|mimes:pdf,png,jpg,jpeg|max:2048', 
             'lands.*.location_address' => 'nullable|string',
             'lands.*.polygon_coordinates' => 'nullable|array',
+            'lands.*.center_latitude' => 'nullable|numeric',
+            'lands.*.center_longitude' => 'nullable|numeric',
+            'lands.*.average_temperature' => 'nullable|numeric',
+            'lands.*.average_humidity' => 'nullable|integer',
+            'lands.*.average_monthly_precipitation' => 'nullable|numeric',
         ], [
             'lands.required' => 'Petani wajib memiliki minimal 1 data lahan.',
             'lands.*.land_name.required' => 'Nama lahan tidak boleh kosong.',
@@ -105,17 +110,15 @@ class FarmerController extends Controller
                 'notes' => $request->notes,
             ]);
 
-            // 3. Ambil seluruh file dari request lands (untuk dipetakan secara native array)
+            // 3. Ambil seluruh file dari request lands
             $allLandFiles = $request->file('lands');
 
             // 4. Simpan data lahan beserta pemrosesan file berkas fisik
             foreach ($request->lands as $index => $landData) {
                 $documentPath = null;
 
-                // 🌟 PERBAIKAN: Deteksi file lewat array index native
                 if (isset($allLandFiles[$index]['ownership_document'])) {
                     $file = $allLandFiles[$index]['ownership_document'];
-                    // Menyimpan ke direktori: storage/app/public/ownership_documents
                     $path = $file->store('ownership_documents', 'public');
                     $documentPath = Storage::url($path); 
                 }
@@ -136,6 +139,11 @@ class FarmerController extends Controller
                     'ownership_document' => $documentPath, 
                     'location_address' => $landData['location_address'] ?? null,
                     'polygon_coordinates' => $landData['polygon_coordinates'] ?? null,
+                    'center_latitude' => $landData['center_latitude'] ?? null,
+                    'center_longitude' => $landData['center_longitude'] ?? null,
+                    'average_temperature' => $landData['average_temperature'] ?? null,
+                    'average_humidity' => $landData['average_humidity'] ?? null,
+                    'average_monthly_precipitation' => $landData['average_monthly_precipitation'] ?? null,
                 ]);
             }
 
@@ -157,21 +165,21 @@ class FarmerController extends Controller
         }
     }
 
-public function show($id)
-{
-    $farmer = Farmer::with(['user', 'farmer_group', 'lands.plants', 'village'])->find($id);
+    public function show($id)
+    {
+        $farmer = Farmer::with(['user', 'farmer_group', 'lands.plants', 'village'])->find($id);
 
-    if (!$farmer) {
-        return response()->json(['message' => 'Petani tidak ditemukan'], 404);
+        if (!$farmer) {
+            return response()->json(['message' => 'Petani tidak ditemukan'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $farmer
+        ], 200);
     }
 
-    return response()->json([
-        'success' => true,
-        'data' => $farmer
-    ], 200);
-}
-
-    public function update(Request $request, $id)
+public function update(Request $request, $id)
     {
         $farmer = Farmer::find($id);
         if (!$farmer) {
@@ -213,6 +221,11 @@ public function show($id)
             'lands.*.ownership_document' => 'nullable', 
             'lands.*.location_address' => 'nullable|string',
             'lands.*.polygon_coordinates' => 'nullable|array', 
+            'lands.*.center_latitude' => 'nullable|numeric',
+            'lands.*.center_longitude' => 'nullable|numeric',
+            'lands.*.average_temperature' => 'nullable|numeric',
+            'lands.*.average_humidity' => 'nullable|integer',
+            'lands.*.average_monthly_precipitation' => 'nullable|numeric',
         ]);
 
         if ($validator->fails()) {
@@ -238,9 +251,9 @@ public function show($id)
                     $existingLand = Land::find($landData['id']);
                 }
 
+                // Logika Dokumen Kepemilikan
                 $documentPath = $existingLand ? $existingLand->ownership_document : null;
 
-                // 🌟 PERBAIKAN: Deteksi file lewat array index native pada update
                 if (isset($allLandFiles[$index]['ownership_document'])) {
                     $file = $allLandFiles[$index]['ownership_document'];
                     
@@ -259,20 +272,30 @@ public function show($id)
                     ['id' => $landData['id'] ?? null],
                     [
                         'land_name' => $landData['land_name'],
-                        'province_id' => $landData['province_id'] ?? null,
-                        'city_id' => $landData['city_id'] ?? null,
-                        'district_id' => $landData['district_id'] ?? null,
-                        'village_id' => $landData['village_id'] ?? null,
-                        'area' => $landData['area'],
-                        'unit' => $landData['unit'],
-                        'status' => $landData['status'],
-                        'current_use' => $landData['current_use'] ?? null,
-                        'soil_type' => $landData['soil_type'] ?? null,
-                        'water_source' => $landData['water_source'] ?? null,
-                        'irrigation_type' => $landData['irrigation_type'] ?? null,
+                        
+                        'province_id' => (!empty($landData['province_id'])) ? $landData['province_id'] : ($existingLand ? $existingLand->province_id : null),
+                        'city_id'     => (!empty($landData['city_id']))     ? $landData['city_id']     : ($existingLand ? $existingLand->city_id : null),
+                        'district_id' => (!empty($landData['district_id'])) ? $landData['district_id'] : ($existingLand ? $existingLand->district_id : null),
+                        'village_id'  => (!empty($landData['village_id']))  ? $landData['village_id']  : ($existingLand ? $existingLand->village_id : null),
+                        
+                        'area'        => $landData['area'],
+                        'unit'        => $landData['unit'],
+                        'status'      => $landData['status'],
+                        
+                        'current_use'     => (!empty($landData['current_use']))     ? $landData['current_use']     : ($existingLand ? $existingLand->current_use : null),
+                        'soil_type'       => (!empty($landData['soil_type']))       ? $landData['soil_type']       : ($existingLand ? $existingLand->soil_type : null),
+                        'water_source'    => (!empty($landData['water_source']))    ? $landData['water_source']    : ($existingLand ? $existingLand->water_source : null),
+                        'irrigation_type' => (!empty($landData['irrigation_type'])) ? $landData['irrigation_type'] : ($existingLand ? $existingLand->irrigation_type : null),
+                        
                         'ownership_document' => $documentPath, 
-                        'location_address' => $landData['location_address'] ?? null,
-                        'polygon_coordinates' => $landData['polygon_coordinates'] ?? null, 
+                        'location_address'   => (!empty($landData['location_address'])) ? $landData['location_address'] : ($existingLand ? $existingLand->location_address : null),
+                        
+                        'polygon_coordinates'           => (!empty($landData['polygon_coordinates']))           ? $landData['polygon_coordinates']           : ($existingLand ? $existingLand->polygon_coordinates : null), 
+                        'center_latitude'               => (!empty($landData['center_latitude']))               ? $landData['center_latitude']               : ($existingLand ? $existingLand->center_latitude : null),
+                        'center_longitude'              => (!empty($landData['center_longitude']))              ? $landData['center_longitude']              : ($existingLand ? $existingLand->center_longitude : null),
+                        'average_temperature'           => (!empty($landData['average_temperature']))           ? $landData['average_temperature']           : ($existingLand ? $existingLand->average_temperature : null),
+                        'average_humidity'              => (!empty($landData['average_humidity']))              ? $landData['average_humidity']              : ($existingLand ? $existingLand->average_humidity : null),
+                        'average_monthly_precipitation' => (!empty($landData['average_monthly_precipitation'])) ? $landData['average_monthly_precipitation'] : ($existingLand ? $existingLand->average_monthly_precipitation : null),
                     ]
                 );
                 
@@ -290,15 +313,16 @@ public function show($id)
 
             $totalLandArea = collect($request->lands)->sum('area');
 
+            // 🌟 PERBAIKAN: Gunakan fallback dari data DB lama agar data wilayah profil utama petani tidak terhapus
             $farmer->update([
                 'farmer_group_id' => $request->farmer_group_id,
-                'nik' => $request->nik,
-                'province_id' => $request->province_id,
-                'city_id' => $request->city_id,
-                'district_id' => $request->district_id,
-                'village_id' => $request->village_id,
+                'nik'             => $request->nik,
+                'province_id'     => (!empty($request->province_id)) ? $request->province_id : $farmer->province_id,
+                'city_id'         => (!empty($request->city_id))     ? $request->city_id     : $farmer->city_id,
+                'district_id'     => (!empty($request->district_id)) ? $request->district_id : $farmer->district_id,
+                'village_id'      => (!empty($request->village_id))  ? $request->village_id  : $farmer->village_id,
                 'total_land_area' => $totalLandArea,
-                'notes' => $request->notes,
+                'notes'           => (!empty($request->notes))       ? $request->notes       : $farmer->notes,
             ]);
 
             DB::commit();
@@ -362,50 +386,44 @@ public function show($id)
         }
     }
 
-
-
     public function destroyLand($landId)
-{
-    DB::beginTransaction();
+    {
+        DB::beginTransaction();
 
-    try {
-        // 1. Cari data lahannya
-        $land = Land::find($landId);
-        if (!$land) {
-            return response()->json(['message' => 'Data lahan tidak ditemukan'], 404);
+        try {
+            $land = Land::find($landId);
+            if (!$land) {
+                return response()->json(['message' => 'Data lahan tidak ditemukan'], 404);
+            }
+
+            $farmer = $land->farmer;
+
+            if ($land->ownership_document) {
+                $oldPath = str_replace('/storage/', '', $land->ownership_document);
+                Storage::disk('public')->delete($oldPath);
+            }
+
+            $land->delete();
+
+            if ($farmer) {
+                $newTotalArea = $farmer->lands()->sum('area');
+                $farmer->update(['total_land_area' => $newTotalArea]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Lahan berhasil dihapus tunggal, total area petani telah diperbarui.'
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus lahan.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $farmer = $land->farmer; // Pastikan relasi 'farmer' sudah ada di Model Land
-
-        // 2. Hapus berkas fisik dokumen jika ada
-        if ($land->ownership_document) {
-            $oldPath = str_replace('/storage/', '', $land->ownership_document);
-            Storage::disk('public')->delete($oldPath);
-        }
-
-        // 3. Hapus data lahan dari database
-        $land->delete();
-
-        // 4. Hitung ulang total_land_area milik petani tersebut
-        if ($farmer) {
-            $newTotalArea = $farmer->lands()->sum('area');
-            $farmer->update(['total_land_area' => $newTotalArea]);
-        }
-
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Lahan berhasil dihapus tunggal, total area petani telah diperbarui.'
-        ], 200);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json([
-            'success' => false,
-            'message' => 'Gagal menghapus lahan.',
-            'error' => $e->getMessage()
-        ], 500);
     }
-}
 }

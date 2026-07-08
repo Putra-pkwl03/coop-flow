@@ -31,7 +31,7 @@ export default function ValidationFilterForm({
   onApplyFilters,
   onSync
 }: ValidationFilterFormProps) {
- const [isFilterOpen, setIsFilterOpen] = useState(false);
+ const [isFilterOpen, setIsFilterOpen] = useState(true);
 
   // Filter local state
   const [status, setStatus] = useState('Semua Status');
@@ -40,7 +40,6 @@ export default function ValidationFilterForm({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // --- MEMBACA DATA DESA SECARA DINAMIS DARI OBJECT VILLAGE API ---
   const uniqueWilayah = useMemo(() => {
     const maps = new Map<string, string>();
 
@@ -51,15 +50,12 @@ export default function ValidationFilterForm({
         const villageCode = villageData.code.trim();
         const villageName = villageData.name ? `Desa ${villageData.name}` : `Kode Desa (${villageCode})`;
         
-        // Menggunakan Map agar data kode desa yang kembar otomatis tersaring (unique)
         maps.set(villageCode, villageName);
       } else if (farmer.village_id) {
-        // Fallback jika objek relasi village kosong namun village_id utama terisi
         maps.set(farmer.village_id.trim(), `Kode Desa: ${farmer.village_id}`);
       }
     });
 
-    // Mengubah Map kembali ke format Array objek [{ id: '3402082001', name: 'Desa PALBAPANG' }]
     return Array.from(maps.entries()).map(([id, name]) => ({ id, name }));
   }, [farmers]);
 

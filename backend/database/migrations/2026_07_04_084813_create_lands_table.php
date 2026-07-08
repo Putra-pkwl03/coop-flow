@@ -31,6 +31,13 @@ return new class extends Migration
 
             $table->text('location_address')->nullable(); 
             $table->json('polygon_coordinates')->nullable(); 
+
+            $table->decimal('center_latitude', 10, 8)->nullable();
+            $table->decimal('center_longitude', 11, 8)->nullable();
+            
+            $table->decimal('average_temperature', 4, 1)->nullable(); 
+            $table->unsignedInteger('average_humidity')->nullable(); 
+            $table->decimal('average_monthly_precipitation', 7, 2)->nullable(); 
             
             $table->timestamps();
         });

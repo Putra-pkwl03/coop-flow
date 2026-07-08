@@ -5,6 +5,11 @@ import dynamic from 'next/dynamic';
 import { FaTrash, FaPlus, FaExpand, FaCompress, FaLayerGroup, FaRedo, FaCheck, FaTimes } from 'react-icons/fa';
 import Swal from 'sweetalert2'; 
 
+// Import fungsi service cuaca analitis
+import { getHistoricalWeatherML } from '@/app/services/weatherService';
+// Import komponen statistik iklim yang baru kita pisahkan di atas
+import MacroClimateStats from './MacroClimateStats';
+
 import 'leaflet/dist/leaflet.css';
 
 const LeafletMapInner = dynamic(() => import('./LeafletMapInner'), {
@@ -21,11 +26,12 @@ interface MapWorkspaceProps {
   initialPolygon?: [number, number][]; 
   allFarmersData?: any[]; 
   selectedLandId?: string | number | null; 
+  selectedLandData?: any; // 🌟 TAMBAHAN: Menerima data objek lahan utuh dari DB
   onSelectLandDirectly?: (farmer: any, land: any) => void; 
   activeTab?: 'belum' | 'sudah';
   onTriggerReMapping?: () => void;
   calculatedAreaText?: string; 
-  onSave?: (e: React.FormEvent) => void; 
+  onSave?: (payload: any) => void; 
   onCancel?: () => void;                
 }
 
@@ -34,6 +40,7 @@ export default function MapWorkspace({
   initialPolygon = [], 
   allFarmersData = [], 
   selectedLandId = null,
+  selectedLandData = null, // 🌟 Di-set default null
   onSelectLandDirectly,
   activeTab = 'belum',
   onTriggerReMapping,
@@ -48,8 +55,16 @@ export default function MapWorkspace({
   const [activeLayer, setActiveLayer] = useState<'esri' | 'google'>('esri');
   const [zoomAction, setZoomAction] = useState<{ type: 'in' | 'out' | null; id: number }>({ type: null, id: 0 });
   
+  // State untuk menyimpan nilai cuaca makro
+  const [macroClimate, setMacroClimate] = useState<{
+    avgTemp: number | string;
+    avgHumidity: number | string;
+    avgRain: number | string;
+  }>({ avgTemp: '--', avgHumidity: '--', avgRain: '--' });
+
   const workspaceRef = useRef<HTMLDivElement>(null);
 
+  // Sync koordinat awal jika ada data passing-an
   useEffect(() => {
     if (initialPolygon && initialPolygon.length > 0) {
       setPolygonCoords(initialPolygon);
@@ -58,6 +73,25 @@ export default function MapWorkspace({
       setPolygonCoords([]);
     }
   }, [initialPolygon]);
+
+  // 🌟 TAMBAHAN EFFECT: Sinkronisasi data iklim dari DB Backend ke UI
+  useEffect(() => {
+    if (activeTab === 'sudah' && selectedLandData) {
+      const dbTemp = selectedLandData.average_temperature;
+      const dbHumidity = selectedLandData.average_humidity;
+      const dbRain = selectedLandData.average_monthly_precipitation;
+
+      // Pasang nilai dari DB jika data tersedia (bukan null atau kosong)
+      setMacroClimate({
+        avgTemp: dbTemp !== null && dbTemp !== undefined ? Number(dbTemp) : '--',
+        avgHumidity: dbHumidity !== null && dbHumidity !== undefined ? Number(dbHumidity) : '--',
+        avgRain: dbRain !== null && dbRain !== undefined ? Number(dbRain) : '--'
+      });
+    } else if (activeTab === 'belum' && polygonCoords.length === 0) {
+      // Reset ke standar jika masuk mode input kosong baru
+      setMacroClimate({ avgTemp: '--', avgHumidity: '--', avgRain: '--' });
+    }
+  }, [selectedLandId, selectedLandData, activeTab]);
 
   useEffect(() => {
     if (initialPolygon && initialPolygon.length > 0) return;
@@ -90,6 +124,7 @@ export default function MapWorkspace({
 
   const handleClearPolygon = () => {
     setPolygonCoords([]);
+    setMacroClimate({ avgTemp: '--', avgHumidity: '--', avgRain: '--' });
     if (onPolygonChange) onPolygonChange([]);
   };
 
@@ -112,6 +147,7 @@ export default function MapWorkspace({
         icon: 'info',
         title: 'Mode Gambar Ulang Aktif. Silakan plot simpul koordinat baru.'
       });
+      setMacroClimate({ avgTemp: '--', avgHumidity: '--', avgRain: '--' });
       if (onPolygonChange) onPolygonChange([]); 
       onTriggerReMapping(); 
     }
@@ -126,10 +162,56 @@ export default function MapWorkspace({
     }
   };
 
+  const handleSaveWorkspace = async () => {
+    if (polygonCoords.length < 3) {
+      Swal.fire('Aturan Validasi Spasial', 'Lahan wajib berbentuk poligon tertutup (minimal membutuhkan 3 titik koordinat)!', 'warning');
+      return;
+    }
+
+    Swal.fire({
+      title: 'Menganalisis Iklim Wilayah...',
+      text: 'Mengumpulkan histori data cuaca 3 tahun dari Open-Meteo untuk standarisasi prediksi ML.',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    const [lat, lng] = polygonCoords[0]; 
+
+    const climateResult = await getHistoricalWeatherML(lat, lng, 3);
+
+    if (!climateResult) {
+      Swal.fire('Koneksi Gagal', 'Gagal memproses data iklim makro wilayah pertanian.', 'error');
+      return;
+    }
+
+    setMacroClimate({
+      avgTemp: climateResult.avg_temperature,
+      avgHumidity: climateResult.avg_humidity,
+      avgRain: climateResult.avg_monthly_precipitation
+    });
+
+    Swal.close();
+
+    const flatClimatePayload = {
+      center_latitude: lat,
+      center_longitude: lng,
+      average_temperature: climateResult.avg_temperature,
+      average_humidity: climateResult.avg_humidity,
+      average_monthly_precipitation: climateResult.avg_monthly_precipitation,
+    };
+
+    if (onSave) {
+      onSave(flatClimatePayload);
+    }
+  };
+
   return (
     <div className="space-y-4 w-full">
       <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wide px-2 pt-2">Lokasi dan Koordinat Lahan</h4>
       
+      {/* PETA */}
       <div 
         ref={workspaceRef}
         className={`bg-white relative shadow-sm overflow-hidden border border-zinc-200 transition-all ${
@@ -210,8 +292,15 @@ export default function MapWorkspace({
         </div>
       </div>
 
-      {/* 🌟 ACTION FOOTER: BUTTON BATAL & SIMPAN FULL UKURAN LEBAR KONTEN */}
-      <div className="grid grid-cols-2 gap-3 pt-4 border-t border-zinc-100 px-1">
+      {/* KAD STATISTIK IKLIM */}
+      <MacroClimateStats 
+        avgTemp={macroClimate.avgTemp}
+        avgHumidity={macroClimate.avgHumidity}
+        avgRain={macroClimate.avgRain}
+      />
+
+      {/* FOOTER BUTTONS */}
+      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-100 px-1">
         <button
           type="button"
           onClick={onCancel}
@@ -222,7 +311,7 @@ export default function MapWorkspace({
         </button>
         <button
           type="button"
-          onClick={onSave}
+          onClick={handleSaveWorkspace} 
           disabled={activeTab === 'belum' && polygonCoords.length < 3}
           className={`w-full py-2.5 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2 shadow-sm ${
             activeTab === 'belum' && polygonCoords.length < 3

@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route untuk kelola tanaman
     Route::apiResource('plants', PlantController::class);
 
+
     // endpoint untuk region manage automatically
     Route::get('/regional/provinces', [RegionalController::class, 'getProvinces']);
     Route::get('/regional/provinces/{province_id}/cities', [RegionalController::class, 'getCities']);
