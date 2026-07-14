@@ -9,6 +9,7 @@ use App\Http\Controllers\RegionalController;
 use App\Http\Controllers\Api\CooperativeDashboardController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\CooperativeController; 
+use App\Http\Controllers\Api\CooperativeRegistrationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,15 @@ use Illuminate\Support\Facades\Route;
 */
 Route::post('/register', [AuthController::class, 'register']); 
 Route::post('/login', [AuthController::class, 'login']);
+
+Route::post('/cooperative/register', [CooperativeRegistrationController::class, 'register']);
+
+Route::prefix('regional')->group(function () {
+    Route::get('/provinces', [RegionalController::class, 'getProvinces']);
+    Route::get('/provinces/{province_id}/cities', [RegionalController::class, 'getCities']);
+    Route::get('/cities/{city_id}/districts', [RegionalController::class, 'getDistricts']);
+    Route::get('/districts/{district_id}/villages', [RegionalController::class, 'getVillages']);
+});
 
 
 /*
@@ -49,6 +59,13 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // API Resource CRUD Koperasi untuk Kemenko Pangan (index, store, show, update, destroy)
     Route::apiResource('cooperatives', CooperativeController::class);
+
+    // Endpoint untuk Kelompok Fitur Review Pengajuan Koperasi Baru oleh Kemenko Pangan
+    Route::prefix('kemenko/registrations')->group(function () {
+        Route::get('/pending', [CooperativeRegistrationController::class, 'getPendingRegistrations']);
+        Route::post('/{id}/approve', [CooperativeRegistrationController::class, 'approve']);
+        Route::post('/{id}/reject', [CooperativeRegistrationController::class, 'reject']);
+    });
 
     // Dashboard data ringkas admin koperasi
     Route::get('/cooperative/dashboard', [CooperativeDashboardController::class, 'getKoperasiData']);
@@ -81,13 +98,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Endpoint hapus lahan tunggal milik petani
     Route::delete('/farmers/lands/{landId}', [FarmerController::class, 'destroyLand']);
-
-    // Endpoint data regional/wilayah administrasi (BPS/Kemendagri) secara bertingkat
-    Route::prefix('regional')->group(function () {
-        Route::get('/provinces', [RegionalController::class, 'getProvinces']);
-        Route::get('/provinces/{province_id}/cities', [RegionalController::class, 'getCities']);
-        Route::get('/cities/{city_id}/districts', [RegionalController::class, 'getDistricts']);
-        Route::get('/districts/{district_id}/villages', [RegionalController::class, 'getVillages']);
-    });
 
 });

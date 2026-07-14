@@ -51,4 +51,19 @@ class Farmer extends Model
     {
         return $this->belongsTo(\Laravolt\Indonesia\Models\Village::class, 'village_id', 'code');
     }
+
+    public function province()
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\Province::class, 'province_id', 'code');
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\City::class, 'city_id', 'code');
+    }
+
+    public function district()
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\District::class, 'district_id', 'code');
+    }
 }

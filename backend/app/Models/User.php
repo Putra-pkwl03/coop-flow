@@ -16,14 +16,16 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
     protected $fillable = [
-        'name', 
-        'email', 
-        'password', 
-        'phone', 
-        'address',
-        'cooperative_id' 
-    ];
-
+    'name', 
+    'email', 
+    'password', 
+    'phone', 
+    'address',
+    'cooperative_id',
+    'status',    
+    'rejection_reason'  
+];
+protected $guard_name = 'api';
     /**
      * Relasi: User (Admin Koperasi/Lapangan) bernaung di bawah satu Koperasi
      */

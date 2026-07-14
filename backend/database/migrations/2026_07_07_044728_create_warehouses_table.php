@@ -13,9 +13,15 @@ return new class extends Migration
     {
         Schema::create('warehouses', function (Blueprint $table) {
             $table->id();
+            // Relasi ke tabel koperasi
             $table->foreignId('cooperative_id')->constrained('cooperatives')->onDelete('cascade');
             $table->string('name'); 
-            $table->integer('capacity_kg'); 
+            $table->text('address'); 
+            $table->double('surface_area'); 
+            $table->integer('capacity_ton'); 
+            $table->string('warehouse_type'); 
+            $table->json('facilities')->nullable(); 
+            
             $table->timestamps();
         });
     }

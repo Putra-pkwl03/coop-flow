@@ -167,7 +167,12 @@ class FarmerController extends Controller
 
     public function show($id)
     {
-        $farmer = Farmer::with(['user', 'farmer_group', 'lands.plants', 'village'])->find($id);
+        $farmer = Farmer::with(['user', 
+                                'farmer_group', 
+                                'lands.plants', 
+                                'province', 'city', 'district', 'village',
+                                'lands.province', 'lands.city', 'lands.district', 'lands.village'
+                                ])->find($id);
 
         if (!$farmer) {
             return response()->json(['message' => 'Petani tidak ditemukan'], 404);

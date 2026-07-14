@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from "react";
 import api from "../../../lib/axios";
 
-import InventorySummary from "@/app/components/cooperative/inventory/InventorySummary";
-import StockTable from "@/app/components/cooperative/inventory/StockTable";
-import WarehouseProgress from "@/app/components/cooperative/inventory/WarehouseProgress";
+import InventorySummary from "@/app/components/dashboard/cooperative/inventory/InventorySummary";
+import StockTable from "@/app/components/dashboard/cooperative/inventory/StockTable";
+import WarehouseProgress from "@/app/components/dashboard/cooperative/inventory/WarehouseProgress";
 
 export default function StokSaatIniPage() {
   const [data, setData] = useState<any>(null);

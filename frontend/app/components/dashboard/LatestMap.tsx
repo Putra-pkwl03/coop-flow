@@ -100,7 +100,7 @@ export default function LatestMap() {
   </div>
 </div>
         
-        <div className="h-[460px] rounded-2xl relative overflow-hidden bg-zinc-100 border border-zinc-200 shadow-inner z-0">
+        <div className="h-115 rounded-2xl relative overflow-hidden bg-zinc-100 border border-zinc-200 shadow-inner z-0">
           {!loading && <MapComponent farmers={farmers} />}
         </div>
       </div>

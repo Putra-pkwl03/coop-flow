@@ -58,4 +58,25 @@ class Land extends Model
     {
         return $this->hasMany(Plant::class);
     }
+
+
+    public function province()
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\Province::class, 'province_id', 'code');
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\City::class, 'city_id', 'code');
+    }
+
+    public function district()
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\District::class, 'district_id', 'code');
+    }
+
+    public function village()
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\Village::class, 'village_id', 'code');
+    }
 }
