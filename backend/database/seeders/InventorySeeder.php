@@ -7,6 +7,7 @@ use App\Models\Warehouse;
 use App\Models\Fertilizer;
 use App\Models\InventoryMutation;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class InventorySeeder extends Seeder
 {
@@ -54,9 +55,10 @@ class InventorySeeder extends Seeder
         ]);
 
 
-        // 3. Buat Data Master Pupuk & Saldo Stok Awal
+        // 3. Buat Data Master Pupuk & Saldo Stok Awal (Sudah ditambahkan fertilizer_code)
         $dataPupuk = [
             [
+                'fertilizer_code'    => 'FPK-UREA',
                 'warehouse_id'       => $gudangPusat->id,
                 'name'               => 'Urea',
                 'current_stock_kg'   => 45250,
@@ -64,6 +66,7 @@ class InventorySeeder extends Seeder
                 'price_per_kg'       => 2500, 
             ],
             [
+                'fertilizer_code'    => 'FPK-NPK',
                 'warehouse_id'       => $gudangPusat->id,
                 'name'               => 'NPK',
                 'current_stock_kg'   => 38400,
@@ -71,6 +74,7 @@ class InventorySeeder extends Seeder
                 'price_per_kg'       => 3000,
             ],
             [
+                'fertilizer_code'    => 'FPK-ORGANIK',
                 'warehouse_id'       => $gudangPusat->id,
                 'name'               => 'Pupuk Organik',
                 'current_stock_kg'   => 12800,
@@ -78,6 +82,7 @@ class InventorySeeder extends Seeder
                 'price_per_kg'       => 1500,
             ],
             [
+                'fertilizer_code'    => 'FPK-SP36',
                 'warehouse_id'       => $gudangCabang->id,
                 'name'               => 'SP-36',
                 'current_stock_kg'   => 8500,
@@ -85,6 +90,7 @@ class InventorySeeder extends Seeder
                 'price_per_kg'       => 2800,
             ],
             [
+                'fertilizer_code'    => 'FPK-KCL',
                 'warehouse_id'       => $gudangCabang->id,
                 'name'               => 'KCl',
                 'current_stock_kg'   => 7000,
@@ -92,6 +98,7 @@ class InventorySeeder extends Seeder
                 'price_per_kg'       => 4000,
             ],
             [
+                'fertilizer_code'    => 'FPK-DOLOMIT',
                 'warehouse_id'       => $gudangCabang->id,
                 'name'               => 'Dolomit',
                 'current_stock_kg'   => 5500,
@@ -99,6 +106,7 @@ class InventorySeeder extends Seeder
                 'price_per_kg'       => 1000,
             ],
             [
+                'fertilizer_code'    => 'FPK-ZA',
                 'warehouse_id'       => $gudangCabang->id,
                 'name'               => 'ZA',
                 'current_stock_kg'   => 7000, 

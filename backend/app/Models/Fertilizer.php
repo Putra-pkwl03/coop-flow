@@ -15,7 +15,6 @@ class Fertilizer extends Model
     {
         return $this->belongsTo(Warehouse::class);
     }
-
     // Relasi: Pupuk ini punya banyak rekam jejak keluar masuk
     public function mutations(): HasMany
     {

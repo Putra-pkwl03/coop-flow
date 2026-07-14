@@ -1,14 +1,14 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ParcelController;
+use App\Http\Controllers\ParcelController;
 use App\Http\Controllers\FarmerController; 
 use App\Http\Controllers\FarmerGroupController;
 use App\Http\Controllers\PlantController;
 use App\Http\Controllers\RegionalController;
-use App\Http\Controllers\Api\CooperativeDashboardController;
-use App\Http\Controllers\Api\InventoryController;
-use App\Http\Controllers\Api\CooperativeController; 
+use App\Http\Controllers\CooperativeDashboardController;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\CooperativeController; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -90,4 +90,30 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/districts/{district_id}/villages', [RegionalController::class, 'getVillages']);
     });
 
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    // 1. Dashboard
+    Route::get('/cooperative/dashboard', [CooperativeDashboardController::class, 'getKoperasiData']);
+
+    // 2. Stok & Inventaris
+    Route::prefix('cooperative/inventory')->group(function () {
+        Route::get('/overview', [InventoryController::class, 'getOverview']);
+        Route::post('/request-procurement-ai', [InventoryController::class, 'requestProcurementAI']);
+    });
+
+    // 3. Status Distribusi
+    Route::prefix('cooperative/distribution')->group(function () {
+        Route::get('/history', [DistributionController::class, 'getHistory']);
+        Route::put('/{id}/status', [DistributionController::class, 'updateStatus']);
+    });
+
+    // 4. Penyaluran (Transaksi)
+    Route::prefix('cooperative/transaction')->group(function () {
+        Route::post('/check-recommendation', [TransactionController::class, 'checkRecommendation']);
+        Route::post('/store', [TransactionController::class, 'storeTransaction']);
+    });
+
+    // 5. Laporan
+    Route::get('/cooperative/laporan/summary', [LaporanController::class, 'getSummaryLaporan']);
 });
