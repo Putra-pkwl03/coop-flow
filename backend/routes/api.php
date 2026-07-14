@@ -1,21 +1,18 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\ParcelController;
+use App\Http\Controllers\Api\CooperativeRegistrationController;
+use App\Http\Controllers\CooperativeController; 
+use App\Http\Controllers\CooperativeDashboardController;
+use App\Http\Controllers\DistributionController; 
 use App\Http\Controllers\FarmerController; 
 use App\Http\Controllers\FarmerGroupController;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\LaporanController;      
+use App\Http\Controllers\ParcelController;
 use App\Http\Controllers\PlantController;
 use App\Http\Controllers\RegionalController;
-
-use App\Http\Controllers\Api\CooperativeDashboardController;
-use App\Http\Controllers\Api\InventoryController;
-use App\Http\Controllers\Api\CooperativeController; 
-use App\Http\Controllers\Api\CooperativeRegistrationController;
-
-use App\Http\Controllers\CooperativeDashboardController;
-use App\Http\Controllers\InventoryController;
-use App\Http\Controllers\CooperativeController; 
-
+use App\Http\Controllers\TransactionController;  
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -26,7 +23,6 @@ use Illuminate\Support\Facades\Route;
 */
 Route::post('/register', [AuthController::class, 'register']); 
 Route::post('/login', [AuthController::class, 'login']);
-
 Route::post('/cooperative/register', [CooperativeRegistrationController::class, 'register']);
 
 Route::prefix('regional')->group(function () {
@@ -44,43 +40,59 @@ Route::prefix('regional')->group(function () {
 */
 Route::middleware('auth:sanctum')->group(function () {
     
-    // Route bawaan Laravel untuk mengambil profil user yang sedang login
+    // Profil & Logout
     Route::get('/user', function (Request $request) {
         return $request->user()->load(['roles', 'cooperative']); 
     });
-
-    // Route untuk Logout (Hapus Token)
     Route::post('/logout', [AuthController::class, 'logout']);
 
     /*
     |--------------------------------------------------------------------------
-    | Ekosistem Koperasi & Logistik (COOP-FLOW Core)
+    | Ekosistem Koperasi (Nested Group /cooperative)
     |--------------------------------------------------------------------------
     */
-    // Endpoint khusus admin koperasi untuk melengkapi koordinat & profil logistik mandiri
-    Route::put('/cooperative/profile/complete', [CooperativeController::class, 'updateProfile']);
-    
-    // Endpoint untuk tombol Aktivasi & Autogenerate Akun Koperasi di Dashboard Kemenko
+    Route::prefix('cooperative')->group(function () {
+        
+        // 1. Profil & Dashboard
+        Route::put('/profile/complete', [CooperativeController::class, 'updateProfile']);
+        Route::get('/dashboard', [CooperativeDashboardController::class, 'getKoperasiData']);
+        
+        // 2. Stok & Inventaris
+        Route::prefix('inventory')->group(function () {
+            Route::get('/overview', [InventoryController::class, 'getOverview']);
+            Route::get('/history', [InventoryController::class, 'getMutationHistory']);
+            Route::post('/mutation', [InventoryController::class, 'storeMutation']);
+            Route::post('/request-procurement-ai', [InventoryController::class, 'requestProcurementAI']);
+        });
+
+        // 3. Status Distribusi
+        Route::prefix('distribution')->group(function () {
+            Route::get('/history', [DistributionController::class, 'getHistory']);
+            Route::put('/{id}/status', [DistributionController::class, 'updateStatus']);
+        });
+
+        // 4. Penyaluran (Transaksi)
+        Route::prefix('transaction')->group(function () {
+            Route::post('/check-recommendation', [TransactionController::class, 'checkRecommendation']);
+            Route::post('/store', [TransactionController::class, 'storeTransaction']);
+        });
+
+        // 5. Laporan
+        Route::get('/laporan/summary', [LaporanController::class, 'getSummaryLaporan']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Modul Kemenko Pangan (Manajemen Koperasi)
+    |--------------------------------------------------------------------------
+    */
     Route::post('/cooperatives/{id}/activate', [CooperativeController::class, 'activate']);
-    
-    // API Resource CRUD Koperasi untuk Kemenko Pangan (index, store, show, update, destroy)
     Route::apiResource('cooperatives', CooperativeController::class);
 
-    // Endpoint untuk Kelompok Fitur Review Pengajuan Koperasi Baru oleh Kemenko Pangan
     Route::prefix('kemenko/registrations')->group(function () {
         Route::get('/pending', [CooperativeRegistrationController::class, 'getPendingRegistrations']);
         Route::post('/{id}/approve', [CooperativeRegistrationController::class, 'approve']);
         Route::post('/{id}/reject', [CooperativeRegistrationController::class, 'reject']);
-    });
-
-    // Dashboard data ringkas admin koperasi
-    Route::get('/cooperative/dashboard', [CooperativeDashboardController::class, 'getKoperasiData']);
-
-    // Fitur manajemen stok-inventaris pupuk di gudang koperasi
-    Route::prefix('cooperative/inventory')->group(function () {
-        Route::get('/overview', [InventoryController::class, 'getOverview']);
-        Route::get('/history', [InventoryController::class, 'getMutationHistory']);
-        Route::post('/mutation', [InventoryController::class, 'storeMutation']);
     });
 
     /*
@@ -88,57 +100,20 @@ Route::middleware('auth:sanctum')->group(function () {
     | Manajemen Lahan, Petani & Wilayah
     |--------------------------------------------------------------------------
     */
-    // Endpoint CRUD Kelompok Tani
     Route::apiResource('farmer-groups', FarmerGroupController::class);
-
     Route::post('farmers/{id}', [FarmerController::class, 'update']);
-
-    // Route API CRUD Master Petani
     Route::apiResource('farmers', FarmerController::class);
-
-    // Route untuk menyimpan Lahan Spasial Baru oleh Admin Lapangan
+    Route::delete('/farmers/lands/{landId}', [FarmerController::class, 'destroyLand']);
+    
     Route::post('/parcels', [ParcelController::class, 'store']);
-
-    // Route untuk kelola komoditas tanaman
     Route::apiResource('plants', PlantController::class);
 
-    // Endpoint hapus lahan tunggal milik petani
-    Route::delete('/farmers/lands/{landId}', [FarmerController::class, 'destroyLand']);
-
-
-    // Endpoint data regional/wilayah administrasi (BPS/Kemendagri) secara bertingkat
+    // Endpoint data regional (Terproteksi)
     Route::prefix('regional')->group(function () {
         Route::get('/provinces', [RegionalController::class, 'getProvinces']);
         Route::get('/provinces/{province_id}/cities', [RegionalController::class, 'getCities']);
         Route::get('/cities/{city_id}/districts', [RegionalController::class, 'getDistricts']);
         Route::get('/districts/{district_id}/villages', [RegionalController::class, 'getVillages']);
     });
-
-});
-
-Route::middleware('auth:sanctum')->group(function () {
-    // 1. Dashboard
-    Route::get('/cooperative/dashboard', [CooperativeDashboardController::class, 'getKoperasiData']);
-
-    // 2. Stok & Inventaris
-    Route::prefix('cooperative/inventory')->group(function () {
-        Route::get('/overview', [InventoryController::class, 'getOverview']);
-        Route::post('/request-procurement-ai', [InventoryController::class, 'requestProcurementAI']);
-    });
-
-    // 3. Status Distribusi
-    Route::prefix('cooperative/distribution')->group(function () {
-        Route::get('/history', [DistributionController::class, 'getHistory']);
-        Route::put('/{id}/status', [DistributionController::class, 'updateStatus']);
-    });
-
-    // 4. Penyaluran (Transaksi)
-    Route::prefix('cooperative/transaction')->group(function () {
-        Route::post('/check-recommendation', [TransactionController::class, 'checkRecommendation']);
-        Route::post('/store', [TransactionController::class, 'storeTransaction']);
-    });
-
-    // 5. Laporan
-    Route::get('/cooperative/laporan/summary', [LaporanController::class, 'getSummaryLaporan']);
 
 });
