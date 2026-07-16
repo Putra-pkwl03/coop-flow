@@ -203,7 +203,7 @@ export default function EditFertilizerModal({ isOpen, onClose, onSuccess, fertil
           </div>
 
           <div>
-            <label className="block font-semibold mb-1">Harga Per Karung <span className="text-red-500">*</span></label>
+            <label className="block font-semibold mb-1">Harga Per KG <span className="text-red-500">*</span></label>
             <div className="relative">
               <span className="absolute left-3 top-2 text-zinc-400 font-medium">Rp</span>
               <input

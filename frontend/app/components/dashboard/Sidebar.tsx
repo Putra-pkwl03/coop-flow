@@ -79,7 +79,7 @@ export default function Sidebar({ handleLogout, role, isOpen }: SidebarProps) {
     {
       name: "Penyaluran Pupuk",
       icon: HiCreditCard,
-      href: "/dashboard/admin-koprasi/transaksi",
+      href: "/dashboard/admin-koprasi/penyaluran",
       roles: ["petugas-koperasi"],
     },
     {

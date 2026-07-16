@@ -433,65 +433,153 @@ public function update(Request $request, $id)
         }
     }
 
-/**
-     * Mengambil rekomendasi pupuk dari FastAPI berdasarkan data Lahan dan parameter tanaman terbaru
-     */
-    public function getFertilizerRecommendation(Request $request, $landId, FastApiService $fastApiService)
-    {
-        // 1. Load data lahan beserta tanaman terkait
-        $land = Land::with(['farmer', 'plants'])->find($landId);
+public function getFertilizerRecommendation(Request $request, $landId, FastApiService $fastApiService)
+{
+    // 1. Load data lahan beserta tanaman terkait
+    $land = Land::with(['farmer', 'plants' => function($query) {
+        $query->latest(); 
+    }])->find($landId);
 
-        if (!$land) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Lahan tidak ditemukan'
-            ], 404);
+    if (!$land) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lahan tidak ditemukan'
+        ], 404);
+    }
+
+    $latestPlant = $land->plants->first();
+
+    // 2. Konversi luas lahan ke hektar
+    $areaInHectares = (float) $land->area;
+    $unitCleaned = strtolower(str_replace(' ', '', $land->unit));
+    
+    if (str_contains($unitCleaned, 'm2') || str_contains($unitCleaned, 'meterpersegi')) {
+        $areaInHectares = $areaInHectares / 10000;
+    }
+
+    // --- LOGIKA FALLBACK JIKA LAHAN BARU BELUM MEMILIKI RIWAYAT TANAMAN/PUPUK ---
+    $komoditasDefault = $latestPlant ? $latestPlant->name : 'Padi';
+    $faseDefault = $latestPlant ? $latestPlant->current_phase : 'Vegetatif';
+    $jenisPupuk = $request->input('jenis_pupuk_input', $latestPlant->last_fertilizer_type ?? 'NPK');
+    $jumlahPupukSebelumnya = (float) $request->input(
+        'jumlah_pupuk_fase_sebelumnya_kg', 
+        (float) ($latestPlant->last_fertilizer_amount ?? 0.0)
+    );
+    $faseSebelumnya = $request->input('fase_tanam_sebelumnya', $latestPlant->last_phase ?? 'Tidak Ada');
+
+    // 3. Susun payload untuk FastAPI
+    $payload = [
+        "luas_lahan_hektar"               => $areaInHectares,
+        "jenis_komoditas"                 => $request->input('jenis_komoditas', $komoditasDefault), 
+        "fase_tanam_saat_ini"             => $request->input('fase_tanam_saat_ini', $faseDefault),
+        "jenis_pupuk_input"               => $jenisPupuk, 
+        "jumlah_pupuk_fase_sebelumnya_kg" => $jumlahJumlahSebelumnya ?? $jumlahPupukSebelumnya,
+        "fase_tanam_sebelumnya"           => $faseSebelumnya,
+        "curah_hujan_mm"                  => (float) ($land->average_monthly_precipitation ?? 150.0),
+        "suhu_rata_rata_celcius"          => (float) ($land->average_temperature ?? 27.0),
+        "kelembapan_persen"               => (int) ($land->average_humidity ?? 80),
+    ];
+
+    // 4. Kirim ke Python FastAPI
+    $result = $fastApiService->predictFertilizer($payload);
+
+    if (!$result || !isset($result['recommended_dosage_kg'])) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mendapatkan prediksi dari Engine ML. Pastikan Service Engine ML berjalan.'
+        ], 502);
+    }
+
+    $recommendedKg = (float) $result['recommended_dosage_kg'];
+
+    // 🔒 Ambil data pupuk HANYA milik koperasi user login agar spek karung (50 kg) presisi
+    $cooperativeId = $request->user() ? $request->user()->cooperative_id : $land->cooperative_id;
+    $dbFertilizers = \App\Models\Fertilizer::where('cooperative_id', $cooperativeId)
+                        ->where('name', 'LIKE', '%' . $jenisPupuk . '%')
+                        ->get();
+
+    $recommendations = [];
+
+    if ($dbFertilizers->isNotEmpty()) {
+        foreach ($dbFertilizers as $index => $dbFertilizer) {
+            $beratPerKarung = (int) ($dbFertilizer->packaging_size_kg > 0 ? $dbFertilizer->packaging_size_kg : 50);
+            $hargaPerKg = (int) $dbFertilizer->price_per_kg;
+            
+            $hargaPerKarung = $hargaPerKg * $beratPerKarung;
+            $jumlahKarung = (int) ceil($recommendedKg / $beratPerKarung);
+
+            $recommendations[] = [
+                "id" => "rec-" . $landId . "-" . ($index + 1),
+                "fertilizer_id" => $dbFertilizer->id,
+                "fertilizer_code" => $dbFertilizer->fertilizer_code,
+                "nama" => $dbFertilizer->name,
+                "fungsi" => "Optimasi nutrisi untuk fase " . $payload['fase_tanam_saat_ini'] . " (Kemasan " . $beratPerKarung . " Kg)",
+                "price_per_kg" => $hargaPerKg,
+                "harga_per_karung" => $hargaPerKarung,
+                "jumlah_karung" => $jumlahKarung,
+                
+                "is_ml" => true,
+                "original_recommended_kg" => round($recommendedKg, 2),
+                "original_recommended_bags" => $jumlahKarung,
+                "packaging_size_kg" => $beratPerKarung,
+                
+                "image_url" => $dbFertilizer->image,
+                
+                // PENGEMBALIAN FIX: Data ditambahkan agar terintegrasi sempurna dengan FE
+                "analysis_meta" => [
+                    "luas_lahan" => $payload['luas_lahan_hektar'] . " Ha",
+                    "komoditas" => $payload['jenis_komoditas'],
+                    "fase_tanam" => $payload['fase_tanam_saat_ini'],
+                    "suhu" => $payload['suhu_rata_rata_celcius'] . "°C",
+                    "kelembapan" => $payload['kelembapan_persen'] . "%",
+                    "curah_hujan" => $payload['curah_hujan_mm'] . " mm",
+                ]
+            ];
         }
-
-        // 2. Ambil data tanaman paling pertama/terbaru di lahan tersebut
-        $latestPlant = $land->plants->first();
-
-        // Konversi luas lahan ke hektar
-        $areaInHectears = (float) $land->area;
-        if ($land->unit === 'Meter Persegi(m2)') {
-            $areaInHectears = $areaInHectears * 0.0001; 
-        }
-
-        // 3. Susun payload dengan memprioritaskan data database tanaman, disusul request, lalu fallback default
-        $payload = [
-            "luas_lahan_hektar"               => $areaInHectears,
-            "jenis_komoditas"                 => $request->input('jenis_komoditas', $latestPlant->name ?? 'Padi'), 
-            
-            "fase_tanam_saat_ini"             => $request->input('fase_tanam_saat_ini', $latestPlant->current_phase ?? 'Vegetatif'),
-            
-            "jenis_pupuk_input"               => $request->input('jenis_pupuk_input', $latestPlant->last_fertilizer_type ?? 'NPK'), 
-            
-            "jumlah_pupuk_fase_sebelumnya_kg" => (float) $request->input(
-                'jumlah_pupuk_fase_sebelumnya_kg', 
-                $latestPlant->last_fertilizer_amount ?? 0.0
-            ),
-            
-            "fase_tanam_sebelumnya"           => $request->input('fase_tanam_sebelumnya', $latestPlant->last_phase ?? 'Tidak Ada'),
-            
-            "curah_hujan_mm"                  => (float) ($land->average_monthly_precipitation ?? 150.0),
-            "suhu_rata_rata_celcius"          => (float) ($land->average_temperature ?? 27.0),
-            "kelembapan_persen"               => (int) ($land->average_humidity ?? 80),
+    } else {
+        // Fallback jika tidak ada data sama sekali di DB
+        $fallbackVariations = [
+            ["berat" => 50, "harga_kg" => 3000, "suffix" => "50kg"],
         ];
 
-        // 4. Kirim ke Python FastAPI
-        $result = $fastApiService->predictFertilizer($payload);
-
-        if (!$result) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mendapatkan prediksi dari Engine ML. Pastikan Service Engine ML berjalan.'
-            ], 502);
+        foreach ($fallbackVariations as $index => $var) {
+            $jumlahKarung = (int) ceil($recommendedKg / $var['berat']);
+            $recommendations[] = [
+                "id" => "rec-" . $landId . "-fallback-" . ($index + 1),
+                "fertilizer_id" => null,
+                "fertilizer_code" => "RAW-" . strtoupper($jenisPupuk) . "-" . $var['berat'] . "KG",
+                "nama" => "Pupuk " . $jenisPupuk . " " . $var['berat'] . "kg",
+                "fungsi" => "Optimasi nutrisi untuk fase " . $payload['fase_tanam_saat_ini'] . " (Kemasan Fallback " . $var['berat'] . " Kg)",
+                "price_per_kg" => $var['harga_kg'],
+                "harga_per_karung" => $var['harga_kg'] * $var['berat'],
+                "jumlah_karung" => $jumlahKarung,
+                
+                "is_ml" => false,
+                "original_recommended_kg" => round($recommendedKg, 2),
+                "original_recommended_bags" => $jumlahKarung,
+                "packaging_size_kg" => $var['berat'],
+                
+                "image_url" => null,
+                
+                // PENGEMBALIAN FIX: Pastikan fallback juga mengirim data cuaca yang sama
+                "analysis_meta" => [
+                    "luas_lahan" => $payload['luas_lahan_hektar'] . " Ha",
+                    "komoditas" => $payload['jenis_komoditas'],
+                    "fase_tanam" => $payload['fase_tanam_saat_ini'],
+                    "suhu" => $payload['suhu_rata_rata_celcius'] . "°C",
+                    "kelembapan" => $payload['kelembapan_persen'] . "%",
+                    "curah_hujan" => $payload['curah_hujan_mm'] . " mm",
+                ]
+            ];
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Rekomendasi pupuk berhasil dihitung!',
-            'data' => $result
-        ], 200);
     }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Rekomendasi pupuk berhasil dihitung!',
+        'data' => [
+            'recommendations' => $recommendations
+        ]
+    ], 200);
+}
 }

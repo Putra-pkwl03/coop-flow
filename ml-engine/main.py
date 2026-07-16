@@ -88,7 +88,7 @@ async def predict_fertilizer_need(payload: Model1Request):
         )
 
 
-@app.post("/predict/procurement")
+@app.post("/forecast/stock")
 async def predict_procurement_stock(payload: Model2Request):
     """
     Model 2: Memprediksi kuantitas dan waktu terbaik untuk mengadakan pengadaan stok pupuk.

@@ -59,6 +59,7 @@ export interface Land {
   created_at: string;
   updated_at: string;
   plants?: Plant[]; 
+  village?: Village;
 }
 
 export interface Village {

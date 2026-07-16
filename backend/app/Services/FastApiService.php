@@ -13,10 +13,10 @@ class FastApiService
 
     public function __construct()
     {
-        $this->baseUrl = config('services.fastapi.base_url') ?? 'http://localhost:8080/api';
-        $this->timeout = (int) (config('services.fastapi.timeout') ?? 30);
+        // Langsung baca dari config. Fallback default sudah di-handle dengan baik oleh config/services.php Anda.
+        $this->baseUrl = config('services.fastapi.base_url');
+        $this->timeout = (int) config('services.fastapi.timeout', 30);
     }
-
 
     public function predictProcurement(array $data): ?array
     {
@@ -41,7 +41,7 @@ class FastApiService
             return null;
 
         } catch (Exception $e) {
-            Log::error('FastAPI Connection Error: ' . $e->getMessage());
+            Log::error('FastAPI Connection Error (Fertilizer): ' . $e->getMessage());
             return null;
         }
     }
@@ -64,7 +64,7 @@ class FastApiService
             return null;
 
         } catch (Exception $e) {
-            Log::error('FastAPI Connection Error: ' . $e->getMessage());
+            Log::error('FastAPI Connection Error (Forecast): ' . $e->getMessage());
             return null;
         }
     }

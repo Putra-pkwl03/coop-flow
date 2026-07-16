@@ -12,7 +12,7 @@ export default function StokInventarisLayout({ children }: { children: React.Rea
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn bg-zinc-50/50 min-h-screen">
+    <div className="space-y-6 animate-fadeIn bg-zinc-50/50 min-h-screen -mt-2.5">
       {/* HEADER UTAMA */}
       <div className="border-b border-zinc-100">
         <h1 className="text-xl font-semibold text-[#115e59] tracking-tight">Stok & Inventaris</h1>
