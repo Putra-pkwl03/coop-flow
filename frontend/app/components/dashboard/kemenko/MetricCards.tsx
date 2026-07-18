@@ -1,24 +1,25 @@
+// src/app/components/dashboard/kemenko/MetricCards.tsx
 "use client";
 
 import React from "react";
 import {
   FaUsers,
   FaCheckCircle,
-  FaTimesCircle,
+  FaClock,
   FaCalendarPlus,
 } from "react-icons/fa";
 
 interface MetricCardsProps {
   total: number;
   active: number;
-  inactive: number;
+  inactive: number; // Walau propnya inactive di page.tsx, kita render sebagai Pending
   newThisMonth: number;
 }
 
 export default function MetricCards({
   total,
   active,
-  inactive,
+  inactive, // Ini merepresentasikan data PENDING
   newThisMonth,
 }: MetricCardsProps) {
   return (
@@ -30,7 +31,7 @@ export default function MetricCards({
         </div>
         <div>
           <p className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider">
-            Total Cooperatives
+            Total Koperasi
           </p>
           <h3 className="text-2xl font-black text-zinc-800">
             {total.toLocaleString("id-ID")}
@@ -49,7 +50,7 @@ export default function MetricCards({
         </div>
         <div>
           <p className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider">
-            Active Cooperatives
+            Koperasi Aktif
           </p>
           <h3 className="text-2xl font-black text-zinc-800">
             {active.toLocaleString("id-ID")}
@@ -61,14 +62,14 @@ export default function MetricCards({
         </div>
       </div>
 
-      {/* CARD 3: INACTIVE */}
+      {/* CARD 3: PENDING (Sebelumnya Inactive) */}
       <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-all duration-200">
         <div className="p-3.5 bg-amber-50 rounded-xl text-amber-600">
-          <FaTimesCircle size={22} />
+          <FaClock size={22} /> {/* Menggunakan ikon jam untuk antrean */}
         </div>
         <div>
           <p className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider">
-            Inactive Cooperatives
+            Koperasi Pending
           </p>
           <h3 className="text-2xl font-black text-zinc-800">
             {inactive.toLocaleString("id-ID")}
@@ -87,7 +88,7 @@ export default function MetricCards({
         </div>
         <div>
           <p className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider">
-            New This Month
+            Terdaftar Bulan Ini
           </p>
           <h3 className="text-2xl font-black text-zinc-800">
             {newThisMonth.toLocaleString("id-ID")}

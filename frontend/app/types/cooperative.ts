@@ -15,6 +15,6 @@ export interface CooperativeRegistrationData {
   district: string;
   village: string;
   postal_code: string;
-  capacity_ton: number | string; // Bisa menerima keduanya, lalu kita parse
+  capacity_ton: number | string;
   password: string;
 }

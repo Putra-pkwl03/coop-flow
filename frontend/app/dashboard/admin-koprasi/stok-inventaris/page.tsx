@@ -7,8 +7,8 @@ import api from "../../../lib/axios";
 // Import Ikon dari react-icons/fa
 import { FaSearch, FaFilter, FaBrain, FaChevronDown, FaChevronUp } from "react-icons/fa";
 
-import InventorySummary from "@/app/components/dashboard/cooperative/inventory/InventorySummary";
-import StockTable from "@/app/components/dashboard/cooperative/inventory/StockTable";
+import InventorySummary from "@/app/components/dashboard/admin-koperasi/inventory/InventorySummary";
+import StockTable from "@/app/components/dashboard/admin-koperasi/inventory/StockTable";
 
 export default function StokSaatIniPage() {
   const router = useRouter();

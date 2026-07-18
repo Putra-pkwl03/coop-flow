@@ -489,8 +489,8 @@ export default function DataPetaniPage() {
 
       {/* COMPONENT MODAL CUSTOM INLINE */}
       {isGroupModalOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-xs transition-opacity animate-fade-in">
-          <div className="bg-white rounded-2xl w-[420px] p-5 shadow-xl border border-zinc-100 flex flex-col items-center">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 backdrop-blur-xs transition-opacity animate-fade-in">
+          <div className="bg-white rounded-2xl w-105 p-5 shadow-xl border border-zinc-100 flex flex-col items-center">
             <h3 className="text-[#00aa5b] font-bold text-lg tracking-wide text-center w-full mb-4">
               Kelompok Petani
             </h3>

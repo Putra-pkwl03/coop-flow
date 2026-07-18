@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CooperativeRegistrationController;
 use App\Http\Controllers\CooperativeController; 
+use App\Http\Controllers\FieldAdminController;
 use App\Http\Controllers\CooperativeDashboardController;
 use App\Http\Controllers\DistributionController; 
 use App\Http\Controllers\FarmerController; 
@@ -47,16 +48,23 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Ekosistem Koperasi (Nested Group /cooperative)
-    |--------------------------------------------------------------------------
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | Ekosistem Koperasi (Nested Group /cooperative)
+        |--------------------------------------------------------------------------
+        */
         Route::prefix('cooperative')->group(function () {
             
-        // 1. Profil & Dashboard
-        Route::put('/profile/complete', [CooperativeController::class, 'updateProfile']);
-        Route::get('/dashboard', [CooperativeDashboardController::class, 'getKoperasiData']);
+            // 1. Profil & Dashboard
+            Route::put('/profile/complete', [CooperativeController::class, 'updateProfile']);
+            Route::get('/dashboard', [CooperativeDashboardController::class, 'getKoperasiData']);
+            
+            Route::get('/field-admins', [FieldAdminController::class, 'index']);  
+            Route::post('/field-admins', [FieldAdminController::class, 'store']); 
+            Route::get('/field-admins/{id}', [FieldAdminController::class, 'show']); 
+            Route::put('/field-admins/{id}', [FieldAdminController::class, 'update']); 
+            Route::put('/field-admins/{id}/toggle-status', [FieldAdminController::class, 'toggleStatus']);
+            Route::delete('/field-admins/{id}', [FieldAdminController::class, 'destroy']); 
         
         // Resource untuk CRUD Pupuk (index, store, show, update, destroy)
         Route::apiResource('fertilizers', FertilizerController::class);
@@ -71,7 +79,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/mutation', [InventoryController::class, 'storeMutation']);
         });
     
-
         // 3. Status Distribusi
         Route::prefix('distribution')->group(function () {
             Route::get('/history', [DistributionController::class, 'getHistory']);
@@ -97,7 +104,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('cooperatives', CooperativeController::class);
 
     Route::prefix('kemenko/registrations')->group(function () {
+        Route::get('/active', [CooperativeRegistrationController::class, 'getActiveRegistrations']);
         Route::get('/pending', [CooperativeRegistrationController::class, 'getPendingRegistrations']);
+        Route::get('/{id}', [CooperativeRegistrationController::class, 'show']);
         Route::post('/{id}/approve', [CooperativeRegistrationController::class, 'approve']);
         Route::post('/{id}/reject', [CooperativeRegistrationController::class, 'reject']);
     });

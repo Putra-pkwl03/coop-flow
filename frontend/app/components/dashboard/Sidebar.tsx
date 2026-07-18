@@ -12,6 +12,7 @@ import {
   HiCalendar,
   HiChartBar,
   HiCog,
+  HiUser,
 } from "react-icons/hi2";
 import { FaTruck } from "react-icons/fa6";
 
@@ -86,6 +87,12 @@ export default function Sidebar({ handleLogout, role, isOpen }: SidebarProps) {
       name: "Kalender Tanam",
       icon: HiCalendar,
       href: "/dashboard/admin-koprasi/kalender",
+      roles: ["petugas-koperasi"],
+    },
+    {
+      name: "Admin Lapangan",
+      icon: HiUser,
+      href: "/dashboard/admin-koprasi/akun-admin-lapangan",
       roles: ["petugas-koperasi"],
     },
     {

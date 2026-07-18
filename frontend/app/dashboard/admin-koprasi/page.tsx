@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import OverviewContent from "../../components/dashboard/cooperative/OverViewContent";
+import OverviewContent from "../../components/dashboard/admin-koperasi/OverViewContent";
 import api from "../../lib/axios";
 
 export default function DashboardOverviewPage() {

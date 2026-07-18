@@ -10,9 +10,9 @@ class Cooperative extends Model
     protected $fillable = [
         'name', 
         'cooperative_code', 
-        'nik_cooperative', 
-        'legal_entity_type',
-        'legal_entity_number',   
+        'nib_cooperative',
+        'legal_approval_document', 
+        'legal_approval_number',   
         'established_date',   
         'npwp',   
         'address', 

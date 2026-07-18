@@ -1,9 +1,13 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, Upload, FolderOpen } from "lucide-react";
 import api from "../../../lib/axios";
+import Swal from "sweetalert2";
 
 export default function RegisterForm() {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref untuk mereset input file secara fisik
   const [loading, setLoading] = useState(false);
   const [provinces, setProvinces] = useState([]);
   const [cities, setCities] = useState([]);
@@ -14,11 +18,14 @@ export default function RegisterForm() {
   const [showPasswordConfirmation, setShowPasswordConfirmation] =
     useState(false);
 
+  // State khusus untuk menampung file biner berkas perizinan
+  const [legalFile, setLegalFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false); // 🆕 State untuk efek drag & drop
+
   const [formData, setFormData] = useState({
     cooperative_name: "",
-    nik_cooperative: "",
-    legal_entity_type: "",
-    legal_entity_number: "",
+    nib_cooperative: "", // 🆕 Menggantikan nik_cooperative
+    legal_approval_number: "", // 🆕 Menggantikan legal_entity_number
     established_date: "",
     npwp: "",
     address_cooperative: "",
@@ -34,6 +41,18 @@ export default function RegisterForm() {
     password_confirmation: "",
   });
 
+  const Toast = Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3500,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.addEventListener("mouseenter", Swal.stopTimer);
+      toast.addEventListener("mouseleave", Swal.resumeTimer);
+    },
+  });
+
   useEffect(() => {
     api
       .get("/regional/provinces")
@@ -47,6 +66,40 @@ export default function RegisterForm() {
     >,
   ) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  // Handler khusus untuk mendeteksi perubahan input file
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setLegalFile(e.target.files[0]);
+    }
+  };
+
+  // 🆕 Handler untuk fitur drag & drop file
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      setLegalFile(file);
+
+      // Sinkronkan file yang di-drop ke input asli agar tetap konsisten
+      if (fileInputRef.current) {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInputRef.current.files = dataTransfer.files;
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
   };
 
   const handleRegionChange = async (type: string, code: string) => {
@@ -90,7 +143,6 @@ export default function RegisterForm() {
     }
   };
 
-  // Generate kode koperasi otomatis, tidak perlu diisi manual oleh user
   const generateCooperativeCode = (name: string) => {
     const initials = name
       .trim()
@@ -108,13 +160,36 @@ export default function RegisterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. Validasi Password
     if (formData.password !== formData.password_confirmation) {
-      alert("Password tidak sama!");
+      Toast.fire({
+        icon: "warning",
+        title: "Konfirmasi password tidak cocok!",
+      });
       return;
     }
+
+    // 2. Validasi Panjang NIB (Wajib 13 Digit)
+    if (formData.nib_cooperative.length !== 13) {
+      Toast.fire({
+        icon: "warning",
+        title: "Nomor Induk Berusaha (NIB) harus tepat 13 digit!",
+      });
+      return;
+    }
+
+    // 3. Validasi Keberadaan Berkas Dokumen
+    if (!legalFile) {
+      Toast.fire({
+        icon: "warning",
+        title: "Dokumen Persetujuan Hukum wajib diunggah!",
+      });
+      return;
+    }
+
     setLoading(true);
 
-    // Cari nama wilayah berdasarkan code yang dipilih
     const provinceName =
       provinces.find((p: any) => p.code === formData.province_id)?.name || "";
     const cityName =
@@ -124,34 +199,77 @@ export default function RegisterForm() {
     const villageName =
       villages.find((v: any) => v.code === formData.village_id)?.name || "";
 
-    const payload = {
-      cooperative_name: formData.cooperative_name,
-      cooperative_code: generateCooperativeCode(formData.cooperative_name),
-      nik_cooperative: formData.nik_cooperative,
-      npwp: formData.npwp,
-      legal_entity_type: formData.legal_entity_type,
-      legal_entity_number: formData.legal_entity_number,
-      established_date: formData.established_date,
-      address_cooperative: formData.address_cooperative,
-      email_cooperative: formData.email_cooperative,
-      phone_cooperative: formData.phone_cooperative,
-      postal_code: formData.postal_code,
-      province: provinceName,
-      city_koor: cityName,
-      district: districtName,
-      village: villageName,
-      capacity_ton: formData.capacity_ton,
-      password: formData.password,
-    };
+    // 🔥 STRATEGI BARU: Menggunakan FormData untuk kebutuhan Upload File Biner
+    const formDataPayload = new FormData();
+
+    formDataPayload.append("cooperative_name", formData.cooperative_name);
+    formDataPayload.append(
+      "cooperative_code",
+      generateCooperativeCode(formData.cooperative_name),
+    );
+    formDataPayload.append("nib_cooperative", formData.nib_cooperative);
+    formDataPayload.append("npwp", formData.npwp);
+    formDataPayload.append(
+      "legal_approval_number",
+      formData.legal_approval_number,
+    );
+    formDataPayload.append("established_date", formData.established_date);
+    formDataPayload.append("address_cooperative", formData.address_cooperative);
+    formDataPayload.append("email_cooperative", formData.email_cooperative);
+    formDataPayload.append("phone_cooperative", formData.phone_cooperative);
+    formDataPayload.append("postal_code", formData.postal_code);
+    formDataPayload.append("province", provinceName);
+    formDataPayload.append("city_koor", cityName);
+    formDataPayload.append("district", districtName);
+    formDataPayload.append("village", villageName);
+    formDataPayload.append("capacity_ton", formData.capacity_ton);
+    formDataPayload.append("password", formData.password);
+
+    // Append file biner ke dalam payload FormData
+    formDataPayload.append("legal_approval_document", legalFile);
 
     try {
-      await api.post("/cooperative/register", payload);
-      alert("Registrasi Berhasil!");
+      // ✅ PERBAIKAN 1: Hapus manual headers "Content-Type", biarkan Axios yang mengatur otomatis
+      // Ubah bagian ini:
+      const response = await api.post(
+        "/cooperative/register",
+        formDataPayload,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+
+      const successMessage =
+        response.data?.message || "Registrasi Koperasi sukses diajukan!";
+
+      Toast.fire({
+        icon: "success",
+        title: successMessage,
+      });
+
+      router.push("/auth/login");
     } catch (err: any) {
       console.error("Full response data:", err.response?.data);
-      alert(
-        err.response?.data?.message || "Gagal registrasi, periksa input data.",
-      );
+
+      let errorMsg = "Gagal registrasi, periksa kembali input data.";
+
+      // ✅ PERBAIKAN 2: Tangkap error 422 dari Laravel Validations
+      if (err.response && err.response.data) {
+        if (err.response.status === 422) {
+          const errors = err.response.data;
+          const firstErrorKey = Object.keys(errors)[0];
+          errorMsg = errors[firstErrorKey][0]; // Ambil pesan error validasi pertama
+        } else if (err.response.data.message) {
+          errorMsg = err.response.data.message;
+        }
+      }
+
+      Toast.fire({
+        icon: "error",
+        title: errorMsg,
+      });
     } finally {
       setLoading(false);
     }
@@ -160,9 +278,8 @@ export default function RegisterForm() {
   const handleCancel = () => {
     setFormData({
       cooperative_name: "",
-      nik_cooperative: "",
-      legal_entity_type: "",
-      legal_entity_number: "",
+      nib_cooperative: "",
+      legal_approval_number: "",
       established_date: "",
       npwp: "",
       address_cooperative: "",
@@ -177,15 +294,17 @@ export default function RegisterForm() {
       password: "",
       password_confirmation: "",
     });
+    setLegalFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = ""; // Bersihkan tampilan input file secara fisik
   };
 
   const inputClass =
-    "border border-gray-300 p-3.5 rounded-lg w-full text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500";
+    "border border-gray-300 p-3.5 rounded-lg w-full text-base text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500";
   const labelClass = "block text-base font-semibold mb-2 text-gray-700";
-  
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Nama Koperasi & NIK */}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Nama Koperasi & NIB */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>
@@ -202,50 +321,99 @@ export default function RegisterForm() {
         </div>
         <div>
           <label className={labelClass}>
-            Nomor Induk Koperasi (NIK) <span className="text-red-500">*</span>
+            Nomor Induk Berusaha (NIB) <span className="text-red-500">*</span>
           </label>
           <input
-            name="nik_cooperative"
-            placeholder="Masukan NIK koperasi"
-            value={formData.nik_cooperative}
-            onChange={handleChange}
+            name="nib_cooperative"
+            placeholder="Masukan 13 digit NIB Koperasi"
+            value={formData.nib_cooperative}
+            // Memastikan user hanya bisa memasukkan angka dengan panjang max 13 digit
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "").slice(0, 13);
+              setFormData((prev) => ({ ...prev, nib_cooperative: val }));
+            }}
             className={inputClass}
             required
           />
         </div>
       </div>
 
-      {/* Badan Hukum & Nomor Badan Hukum */}
+      {/* Upload Berkas Dokumen & Nomor Berkas Dokumen */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>
-            Badan Hukum <span className="text-red-500">*</span>
+            Upload Berkas / SK Pendirian <span className="text-red-500">*</span>
           </label>
-          <select
-            name="legal_entity_type"
-            value={formData.legal_entity_type}
-            onChange={handleChange}
-            className={`${inputClass} ${formData.legal_entity_type ? "text-black" : "text-gray-400"}`}
-            required
+
+          {/* 🆕 Dropzone kustom menggantikan input file bawaan */}
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onClick={() => fileInputRef.current?.click()}
+            className={`flex items-center justify-between gap-4 border-2 border-dashed rounded-lg p-4 cursor-pointer transition
+              ${
+                isDragging
+                  ? "border-green-500 bg-green-50/60"
+                  : "border-gray-300 bg-gray-50/60 hover:border-green-400"
+              }`}
           >
-            <option value="">Pilih Badan Hukum</option>
-            <option value="koperasi_simpan_pinjam">
-              Koperasi Simpan Pinjam
-            </option>
-            <option value="koperasi_produksi">Koperasi Produksi</option>
-            <option value="koperasi_konsumen">Koperasi Konsumen</option>
-            <option value="koperasi_jasa">Koperasi Jasa</option>
-            <option value="koperasi_serba_usaha">Koperasi Serba Usaha</option>
-          </select>
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="shrink-0 bg-green-50 text-green-600 rounded-lg p-3">
+                <Upload size={22} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-base text-black truncate">
+                  <span className="font-semibold">Pilih file</span> atau seret
+                  &amp; lepas file di sini
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Format dokumen: PDF, JPG, JPEG, PNG
+                  <br />
+                  Maksimal ukuran file: 2MB
+                </p>
+                {legalFile && (
+                  <p className="text-xs text-green-700 font-medium mt-1 truncate">
+                    Berkas dipilih: {legalFile.name}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className="shrink-0 flex items-center gap-2 border border-green-200 bg-green-50 text-green-700 font-semibold text-sm px-4 py-2.5 rounded-lg hover:bg-green-100 transition whitespace-nowrap"
+            >
+              <FolderOpen size={16} />
+              Pilih File
+            </button>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={handleFileChange}
+              className="hidden"
+              required={!legalFile}
+            />
+          </div>
+
+          <p className="text-xs text-gray-500 mt-1">
+            Format dokumen: PDF, JPG, JPEG, PNG (Maksimal ukuran file: 2MB)
+          </p>
         </div>
         <div>
           <label className={labelClass}>
-            Nomor Badan Hukum <span className="text-red-500">*</span>
+            Nomor SK / Pendaftaran Hukum <span className="text-red-500">*</span>
           </label>
           <input
-            name="legal_entity_number"
+            name="legal_approval_number"
             placeholder="Contoh : AHU-876345S-835 Tahun 2026"
-            value={formData.legal_entity_number}
+            value={formData.legal_approval_number}
             onChange={handleChange}
             className={inputClass}
             required
@@ -424,7 +592,8 @@ export default function RegisterForm() {
         </div>
         <div>
           <label className={labelClass}>
-            Kapasitas Penyimpanan Gudang <span className="text-red-500">*</span>
+            Kapasitas Penyimpanan Gudang (Ton){" "}
+            <span className="text-red-500">*</span>
           </label>
           <input
             type="number"

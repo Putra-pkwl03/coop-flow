@@ -62,23 +62,45 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        // Validasi Input Login
+        // 1. Validasi Input Login
         $request->validate([
             'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
 
-        // Cari User Berdasarkan Email
+        // 2. Cari User Berdasarkan Email
         $user = User::where('email', $request->email)->first();
 
-        // Cek Ketersediaan User dan Kecocokan Password
+        // 3. Cek Ketersediaan User dan Kecocokan Password
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'message' => 'Email atau password salah.'
             ], 401);
         }
 
-        // Buat Token Baru
+        // ==========================================
+        // 4. PENGECEKAN STATUS AKUN (BLOKIR AKSES)
+        // ==========================================
+        
+        // Tolak jika status masih PENDING
+        if ($user->status === 'PENDING') {
+            return response()->json([
+                'message' => 'Gagal masuk: Akun Koperasi Anda masih dalam proses verifikasi oleh Kemenko Pangan.'
+            ], 403); // 403 Forbidden
+        }
+
+        // Tolak jika status REJECTED
+        if ($user->status === 'REJECTED') {
+            return response()->json([
+                'message' => 'Gagal masuk: Pendaftaran Koperasi ditolak. Alasan: ' . ($user->rejection_reason ?? 'Silakan hubungi Kemenko Pangan.')
+            ], 403); // 403 Forbidden
+        }
+
+        // ==========================================
+        // Jika lolos (status ACTIVE atau role lain yang tidak butuh verifikasi)
+        // ==========================================
+
+        // 5. Buat Token Baru
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

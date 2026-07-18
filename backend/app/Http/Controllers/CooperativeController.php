@@ -26,7 +26,7 @@ class CooperativeController extends Controller
             $query->where('is_activated', $isActivated);
         }
 
-        $cooperatives = $query->withCount('users', 'warehouses')->get();
+        $cooperatives = $query->withCount('users')->get();
 
         return response()->json([
             'success' => true,
@@ -69,7 +69,7 @@ class CooperativeController extends Controller
      */
     public function show($id)
     {
-        $cooperative = Cooperative::with(['warehouses', 'users'])->find($id);
+        $cooperative = Cooperative::with(['users'])->find($id);
 
         if (!$cooperative) {
             return response()->json([
@@ -87,7 +87,7 @@ class CooperativeController extends Controller
 
     /**
      * 4. AKTIVASI & GENERATE AKUN KOPERASI (Akses: Kemenko Pangan)
-     * Mengubah status 'is_activated' menjadi true dan membuatkan akun login default
+     * Mengubah status 'is_activated' menjadi true dan mengaktifkan akun login
      */
     public function activate(Request $request, $id)
     {
@@ -104,11 +104,24 @@ class CooperativeController extends Controller
         // 1. Update status koperasi menjadi aktif
         $cooperative->update(['is_activated' => true]);
 
-        // 2. Generate email & password default otomatis
+        // 2. Cek apakah sudah ada akun User yang terikat dengan koperasi ini
+        // (Ini terjadi jika koperasi mendaftar mandiri lewat RegisterForm)
+        $existingUser = User::where('cooperative_id', $cooperative->id)->first();
+
+        if ($existingUser) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Koperasi berhasil diaktifkan! Silakan login menggunakan Email & Password yang telah didaftarkan sebelumnya.',
+                'cooperative' => $cooperative
+            ], 200);
+        }
+
+        // 3. Jika BELUM ada user (Kasus: Diinput manual oleh Kemenko via store)
+        // Generate email & password default otomatis
         $defaultEmail = 'admin.' . Str::slug($cooperative->name) . '@kdmp.go.id';
         $defaultPassword = 'kdmp' . Str::lower($cooperative->cooperative_code);
 
-        // 3. Create user baru dengan role petugas-koperasi
+        // Create user baru dengan role petugas-koperasi
         $user = User::create([
             'name'           => 'Admin ' . $cooperative->name,
             'email'          => $defaultEmail,
@@ -120,7 +133,7 @@ class CooperativeController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Koperasi berhasil diaktifkan dan akun login berhasil dibuat!',
+            'message' => 'Koperasi berhasil diaktifkan dan akun login default berhasil dibuat!',
             'credentials' => [
                 'email'    => $defaultEmail,
                 'password' => $defaultPassword, 

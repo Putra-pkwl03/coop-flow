@@ -1,3 +1,4 @@
+// src/app/components/dashboard/kemenko/FilterBar.tsx
 "use client";
 
 import React from "react";
@@ -25,7 +26,7 @@ export default function FilterBar({
         <FaSearch className="absolute left-4 top-3.5 text-zinc-400 text-sm" />
         <input
           type="text"
-          placeholder="Search cooperative name, unique code, or location..."
+          placeholder="Cari nama koperasi, kode unik, atau lokasi..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-11 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0F7B4A] transition-all text-zinc-700 placeholder-zinc-400"
@@ -34,22 +35,20 @@ export default function FilterBar({
 
       {/* DROPDOWN FILTERS */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 shrink-0">
-        {/* PROVINCE (Kerangka siap integrasi API Regional) */}
         <select
           disabled
           className="bg-zinc-50 border border-zinc-200 text-zinc-400 rounded-xl py-2.5 px-4 text-sm font-medium focus:outline-none cursor-not-allowed"
           defaultValue="all"
         >
-          <option value="all">All Provinces</option>
+          <option value="all">Semua Provinsi</option>
         </select>
 
-        {/* REGENCY/CITY (Kerangka siap integrasi API Regional) */}
         <select
           disabled
           className="bg-zinc-50 border border-zinc-200 text-zinc-400 rounded-xl py-2.5 px-4 text-sm font-medium focus:outline-none cursor-not-allowed"
           defaultValue="all"
         >
-          <option value="all">All Regencies/Cities</option>
+          <option value="all">Semua Kabupaten/Kota</option>
         </select>
 
         {/* STATUS COOPERATIVE */}
@@ -58,9 +57,10 @@ export default function FilterBar({
           onChange={(e) => setStatusFilter(e.target.value)}
           className="bg-white border border-zinc-200 rounded-xl py-2.5 px-4 text-sm font-semibold text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#0F7B4A] cursor-pointer"
         >
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="all">Semua Status</option>
+          <option value="active">Aktif</option>
+          <option value="inactive">Pending</option>{" "}
+          {/* Diselaraskan menjadi Pending */}
         </select>
       </div>
 

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import api from "../../../lib/axios";
-import DetailAnggota from "../../../components/dashboard/cooperative/DetailAnggota";
+import DetailAnggota from "../../../components/dashboard/admin-koperasi/DetailAnggota";
 
 export default function AnggotaPage() {
   const [farmers, setFarmers] = useState<any[]>([]);
@@ -129,13 +129,13 @@ export default function AnggotaPage() {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen text-gray-800">
+    <div className=" bg-gray-50  text-gray-800">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-950">
+        <h1 className="text-xl font-bold text-[#0F7B4A]">
           Data Anggota Petani
         </h1>
-        <p className="text-sm text-gray-500">Berikut ini adalah data petani</p>
+        <p className="text-xs text-gray-500">Berikut ini adalah data petani</p>
       </div>
 
       {/* Container Utama Pencarian & Filter */}
