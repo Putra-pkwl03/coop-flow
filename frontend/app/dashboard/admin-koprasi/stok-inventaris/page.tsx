@@ -5,11 +5,9 @@ import api from "../../../lib/axios";
 
 // Import Ikon
 import { FaSearch, FaFilter, FaBrain, FaChevronDown, FaChevronUp, FaBoxes } from "react-icons/fa";
-
-<<<<<<< HEAD
-import InventorySummary from "@/app/components/dashboard/cooperative/inventory/InventorySummary";
-import StockTable from "@/app/components/dashboard/cooperative/inventory/StockTable";
-import AiProcurementPanel from "@/app/components/dashboard/cooperative/inventory/AiProcurementPanel"; 
+import InventorySummary from "@/app/components/dashboard/admin-koperasi/inventory/InventorySummary";
+import StockTable from "@/app/components/dashboard/admin-koperasi/inventory/StockTable";
+import AiProcurementPanel from "@/app/components/dashboard/admin-koperasi/inventory/AiProcurementPanel"; 
 
 const getCookie = (name: string): string | null => {
   if (typeof document === "undefined") return null;
@@ -18,10 +16,7 @@ const getCookie = (name: string): string | null => {
   if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
   return null;
 };
-=======
-import InventorySummary from "@/app/components/dashboard/admin-koperasi/inventory/InventorySummary";
-import StockTable from "@/app/components/dashboard/admin-koperasi/inventory/StockTable";
->>>>>>> f8275cf87f9641eeb74e2ddf2e9f09c912736e00
+
 
 export default function StokSaatIniPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);

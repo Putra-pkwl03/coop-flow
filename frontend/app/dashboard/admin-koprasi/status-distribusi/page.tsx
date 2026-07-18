@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '@/app/lib/axios'; 
-import ProcurementOverview from '@/app/components/dashboard/cooperative/procurement/ProcurementOverview';
-import ProcurementTable from '@/app/components/dashboard/cooperative/procurement/ProcurementTable';
-import ProcurementTracker from '@/app/components/dashboard/cooperative/procurement/ProcurementTracker'; 
-import DistributionSummaryCard from '@/app/components/dashboard/cooperative/procurement/DistributionSummaryCard';
-import DistributionBanner from '@/app/components/dashboard/cooperative/procurement/DistributionBanner';
+import ProcurementOverview from '@/app/components/dashboard/admin-koperasi/procurement/ProcurementOverview';
+import ProcurementTable from '@/app/components/dashboard/admin-koperasi/procurement/ProcurementTable';
+import ProcurementTracker from '@/app/components/dashboard/admin-koperasi/procurement/ProcurementTracker'; 
+import DistributionSummaryCard from '@/app/components/dashboard/admin-koperasi/procurement/DistributionSummaryCard';
+import DistributionBanner from '@/app/components/dashboard/admin-koperasi/procurement/DistributionBanner';
 import { FaSearch, FaFilter } from 'react-icons/fa';
 
 export default function StatusDistribusiPage() {
