@@ -2,32 +2,35 @@
 "use client";
 
 import React from "react";
-import { FaEye, FaPlay, FaChevronDown } from "react-icons/fa";
+import { FaEye, FaChevronDown, FaClipboardList } from "react-icons/fa";
 
 interface Cooperative {
-  id: number; // User ID untuk keperluan action approve
+  id: number;
   name: string;
-  legal_entity_type: string; // Subtitle jenis koperasi
   province: string;
-  city_koor: string; // Kabupaten/Kota
+  city_koor: string;
   status: string; // 'PENDING' | 'ACTIVE'
-  created_at?: string; // Tanggal Terdaftar
+  created_at?: string;
 }
 
 interface CooperativeTableProps {
   data: Cooperative[];
   loading: boolean;
   actionLoading: number | null;
-  onActivate: (id: number) => void;
+  // Prop baru untuk memicu terbukanya modal detail
+  onViewDetail: (id: number) => void;
+  // onActivate tetap dipertahankan opsional jika nanti ingin dipakai di dropdown cepat
+  onActivate?: (id: number) => void;
 }
 
 export default function CooperativeTable({
   data,
   loading,
   actionLoading,
+  onViewDetail,
   onActivate,
 }: CooperativeTableProps) {
-  // Helper sederhana untuk memformat tanggal bawaan database ke format "10 Jan 2024"
+  // Helper sederhana untuk memformat tanggal
   const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
@@ -60,7 +63,7 @@ export default function CooperativeTable({
                   colSpan={7}
                   className="text-center py-12 text-zinc-400 font-medium"
                 >
-                  Memuat data logistik nasional...
+                  Memuat data master koperasi...
                 </td>
               </tr>
             ) : data.length === 0 ? (
@@ -69,7 +72,7 @@ export default function CooperativeTable({
                   colSpan={7}
                   className="text-center py-12 text-zinc-400 font-medium"
                 >
-                  Tidak ada data master koperasi yang cocok.
+                  Tidak ada data koperasi yang ditemukan.
                 </td>
               </tr>
             ) : (
@@ -83,12 +86,9 @@ export default function CooperativeTable({
                     {index + 1}
                   </td>
 
-                  {/* KOLOM 2: NAMA KOPERASI + JENIS */}
+                  {/* KOLOM 2: NAMA KOPERASI */}
                   <td className="py-3.5 px-4">
                     <div className="font-bold text-zinc-900">{coop.name}</div>
-                    <div className="text-[12px] text-zinc-400 font-medium mt-0.5">
-                      {coop.legal_entity_type}
-                    </div>
                   </td>
 
                   {/* KOLOM 3: PROVINSI */}
@@ -119,28 +119,35 @@ export default function CooperativeTable({
                     {formatDate(coop.created_at)}
                   </td>
 
-                  {/* KOLOM 7: AKSI (DISESUAIKAN DENGAN GAMBAR REFERENSI) */}
+                  {/* KOLOM 7: AKSI (Disesuaikan untuk Flow Baru) */}
                   <td className="py-3.5 px-6">
                     <div className="flex items-center justify-center">
                       {coop.status === "PENDING" ? (
                         <div className="inline-flex rounded-lg border border-emerald-200 shadow-sm">
                           <button
-                            onClick={() => onActivate(coop.id)}
+                            onClick={() => onViewDetail(coop.id)}
                             disabled={actionLoading === coop.id}
                             className="bg-white hover:bg-emerald-50/50 text-emerald-600 text-[12px] pl-3 pr-2 py-1.5 rounded-l-lg font-bold flex items-center gap-1.5 transition-all disabled:opacity-50 border-r border-emerald-100"
                           >
-                            <FaPlay size={9} className="text-emerald-500" />
+                            <FaClipboardList
+                              size={11}
+                              className="text-emerald-500"
+                            />
                             {actionLoading === coop.id
-                              ? "Memproses..."
-                              : "Aktifkan"}
+                              ? "Memuat..."
+                              : "Periksa"}
                           </button>
+                          {/* Tombol dropdown dipertahankan untuk opsi tambahan nanti (misal: Tolak Cepat) */}
                           <button className="bg-white hover:bg-emerald-50/50 text-emerald-600 px-2 py-1.5 rounded-r-lg transition-all">
                             <FaChevronDown size={10} />
                           </button>
                         </div>
                       ) : (
                         <div className="inline-flex rounded-lg border border-zinc-200 shadow-sm">
-                          <button className="bg-white hover:bg-zinc-50 text-zinc-600 text-[12px] pl-3 pr-2 py-1.5 rounded-l-lg font-bold flex items-center gap-1.5 transition-all">
+                          <button
+                            onClick={() => onViewDetail(coop.id)}
+                            className="bg-white hover:bg-zinc-50 text-zinc-600 text-[12px] pl-3 pr-2 py-1.5 rounded-l-lg font-bold flex items-center gap-1.5 transition-all"
+                          >
                             <FaEye size={11} className="text-zinc-400" />
                             Lihat Detail
                           </button>

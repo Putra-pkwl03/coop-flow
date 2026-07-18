@@ -26,7 +26,7 @@ class CooperativeController extends Controller
             $query->where('is_activated', $isActivated);
         }
 
-        $cooperatives = $query->withCount('users', 'warehouses')->get();
+        $cooperatives = $query->withCount('users')->get();
 
         return response()->json([
             'success' => true,
@@ -69,7 +69,7 @@ class CooperativeController extends Controller
      */
     public function show($id)
     {
-        $cooperative = Cooperative::with(['warehouses', 'users'])->find($id);
+        $cooperative = Cooperative::with(['users'])->find($id);
 
         if (!$cooperative) {
             return response()->json([

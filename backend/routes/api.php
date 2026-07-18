@@ -106,6 +106,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('kemenko/registrations')->group(function () {
         Route::get('/active', [CooperativeRegistrationController::class, 'getActiveRegistrations']);
         Route::get('/pending', [CooperativeRegistrationController::class, 'getPendingRegistrations']);
+        Route::get('/{id}', [CooperativeRegistrationController::class, 'show']);
         Route::post('/{id}/approve', [CooperativeRegistrationController::class, 'approve']);
         Route::post('/{id}/reject', [CooperativeRegistrationController::class, 'reject']);
     });

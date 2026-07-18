@@ -9,6 +9,11 @@ import FilterBar from "@/app/components/dashboard/kemenko/FilterBar";
 import CooperativeTable from "@/app/components/dashboard/kemenko/CooperativeTable";
 import NotificationModal from "@/app/components/dashboard/kemenko/NotificationModal";
 
+// IMPORT KOMPONEN MODAL DETAIL BARU KITA
+import CooperativeDetailModal, {
+  CooperativeDetailData,
+} from "@/app/components/dashboard/kemenko/CooperativeDetailModal";
+
 // Definisikan struktur data agar pas dengan properti tabel visual yang baru
 interface CooperativeViewData {
   id: number;
@@ -39,6 +44,11 @@ export default function CooperativeMasterPage() {
   // State untuk modal notifikasi/konfirmasi custom
   const [modal, setModal] = useState<ModalState | null>(null);
   const closeModal = () => setModal(null);
+
+  // === STATE BARU UNTUK MODAL DETAIL KOPERASI ===
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
+  const [selectedCoopDetail, setSelectedCoopDetail] =
+    useState<CooperativeDetailData | null>(null);
 
   const fetchCooperatives = async () => {
     setLoading(true);
@@ -105,19 +115,84 @@ export default function CooperativeMasterPage() {
     );
   }).length;
 
-  // Step 1: tampilkan modal konfirmasi dulu, bukan langsung eksekusi
-  const handleActivateCooperative = (userId: number) => {
+  const handleViewDetail = async (userId: number) => {
+    setActionLoading(userId);
+    try {
+      const response = await api.get(`/kemenko/registrations/${userId}`);
+      if (response.data.success) {
+        const data = response.data.data;
+
+        const detailData: CooperativeDetailData = {
+          id: data.id,
+          name: data.cooperative?.name || data.name || "-",
+          email: data.email || "-",
+          phone: data.phone || data.cooperative?.phone_cooperative || "-",
+          nib: data.cooperative?.nib_cooperative || "-",
+          sk_number: data.cooperative?.legal_approval_number || "-",
+          established_date: data.cooperative?.established_date || "-",
+          npwp: data.cooperative?.npwp || "-",
+          capacity: data.cooperative?.warehouse_capacity_ton || "0",
+          status: data.status || "PENDING",
+          document: {
+            file_name:
+              data.cooperative?.legal_approval_document?.split("/").pop() ||
+              "Dokumen_Koperasi.pdf",
+            file_size: "File Terlampir",
+            file_url: data.cooperative?.legal_approval_document || "#",
+          },
+          location: {
+            province: data.cooperative?.province || "-",
+            city: data.cooperative?.city_koor || "-",
+            district: data.cooperative?.district || "-",
+            village: data.cooperative?.village || "-",
+            postal_code: data.cooperative?.postal_code || "-",
+            full_address: data.cooperative?.address || "-",
+          },
+        };
+
+        setSelectedCoopDetail(detailData);
+        setIsDetailModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil detail koperasi:", error);
+      setModal({
+        isOpen: true,
+        type: "error",
+        title: "Gagal Memuat Detail",
+        description: "Terjadi kesalahan saat mengambil data lengkap koperasi.",
+        onConfirm: closeModal,
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleActivateFromDetail = (userId: number) => {
+    setIsDetailModalOpen(false); // Tutup modal detail terlebih dahulu
     setModal({
       isOpen: true,
       type: "confirm",
       title: "Aktifkan Koperasi?",
       description:
-        "Apakah Anda yakin ingin menyetujui dan mengaktifkan koperasi ini?",
+        "Apakah Anda yakin ingin menyetujui dan mengaktifkan koperasi ini berdasarkan dokumen yang telah diperiksa?",
       onConfirm: () => confirmActivateCooperative(userId),
     });
   };
 
-  // Step 2: baru dijalankan setelah user klik tombol konfirmasi di modal
+  // Step 1 (Tolak dari Modal Detail): Tutup modal detail, buka modal konfirmasi penolakan
+  const handleRejectFromDetail = (userId: number) => {
+    setIsDetailModalOpen(false);
+    setModal({
+      isOpen: true,
+      type: "confirm",
+      title: "Tolak Koperasi?",
+      description:
+        "Apakah Anda yakin ingin menolak koperasi ini? Akun mereka tidak akan diaktifkan.",
+      onConfirm: () => confirmRejectCooperative(userId),
+    });
+  };
+
+  // Step 2: Eksekusi Aktivasi
   const confirmActivateCooperative = async (userId: number) => {
     closeModal();
     setActionLoading(userId);
@@ -129,7 +204,7 @@ export default function CooperativeMasterPage() {
         setModal({
           isOpen: true,
           type: "success",
-          title: "Berhasil disimpan",
+          title: "Berhasil Disetujui",
           description: "Koperasi berhasil diaktifkan.",
           onConfirm: closeModal,
         });
@@ -139,9 +214,42 @@ export default function CooperativeMasterPage() {
       setModal({
         isOpen: true,
         type: "error",
-        title: "Gagal mengaktifkan",
+        title: "Gagal Mengaktifkan",
         description:
           error.response?.data?.message || "Gagal mengaktifkan koperasi.",
+        onConfirm: closeModal,
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Step 2: Eksekusi Penolakan (Fungsi Baru)
+  const confirmRejectCooperative = async (userId: number) => {
+    closeModal();
+    setActionLoading(userId);
+    try {
+      const response = await api.post(
+        `/kemenko/registrations/${userId}/reject`,
+      ); // Pastikan API ini tersedia di backend
+      if (response.data.success) {
+        setModal({
+          isOpen: true,
+          type: "success",
+          title: "Berhasil Ditolak",
+          description: "Pendaftaran koperasi telah ditolak.",
+          onConfirm: closeModal,
+        });
+        fetchCooperatives(); // Refresh Data
+      }
+    } catch (error: any) {
+      setModal({
+        isOpen: true,
+        type: "error",
+        title: "Gagal Menolak",
+        description:
+          error.response?.data?.message ||
+          "Terjadi kesalahan saat menolak pendaftaran.",
         onConfirm: closeModal,
       });
     } finally {
@@ -199,14 +307,25 @@ export default function CooperativeMasterPage() {
         onReset={handleResetFilters}
       />
 
+      {/* UPDATE DISINI: Mengganti onActivate menjadi onViewDetail */}
       <CooperativeTable
         data={filteredData}
         loading={loading}
         actionLoading={actionLoading}
-        onActivate={handleActivateCooperative}
+        onViewDetail={handleViewDetail}
       />
 
-      {/* Modal notifikasi/konfirmasi custom, ganti confirm()/alert() bawaan browser */}
+      {/* RENDER MODAL DETAIL KOPERASI */}
+      <CooperativeDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        data={selectedCoopDetail}
+        onApprove={handleActivateFromDetail}
+        onReject={handleRejectFromDetail}
+        actionLoading={!!actionLoading}
+      />
+
+      {/* Modal notifikasi/konfirmasi custom */}
       {modal && (
         <NotificationModal
           isOpen={modal.isOpen}
