@@ -15,7 +15,7 @@ function PenyaluranSkeleton() {
         <div className="h-4 bg-gray-200 rounded-lg w-64"></div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start h-[calc(100vh-180px)] min-h-[550px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start h-[calc(100vh-180px)] min-h-137.5">
         <div className="lg:col-span-6 flex flex-col gap-4 w-full h-full">
           <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4 shadow-sm shrink-0">
             <div className="flex gap-2">
@@ -124,7 +124,7 @@ const [checkoutData, setCheckoutData] = useState<{
 
   if (error) {
     return (
-      <div className="bg-gray-50 flex items-center justify-center min-h-[400px]">
+      <div className="bg-gray-50 flex items-center justify-center min-h-100">
         <div className="bg-white border border-red-100 rounded-xl p-6 text-center shadow-sm max-w-md">
           <span className="text-3xl">⚠️</span>
           <h3 className="text-md font-bold text-red-600 mt-2">Error</h3>
@@ -147,7 +147,7 @@ const [checkoutData, setCheckoutData] = useState<{
         <p className="text-xs text-zinc-500 font-medium mt-1">Pilih petani dan salurkan pupuk mereka</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start h-[calc(100vh-180px)] min-h-[550px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start h-[calc(100vh-180px)] min-h-137.5">
         {/* PANEL KIRI */}
         <div className="lg:col-span-6 flex flex-col w-full h-full overflow-hidden">
           <FarmerList 

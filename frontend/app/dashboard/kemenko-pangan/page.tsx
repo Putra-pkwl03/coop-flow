@@ -1,206 +1,278 @@
 "use client";
 
 import React from "react";
-import { 
-  FaUsers, 
-  FaClock, 
-  FaWarehouse, 
-  FaSeedling, 
-  FaSearch, 
-  FaFilter,
-  FaCheckCircle
-} from "react-icons/fa";
+import Link from "next/link";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+import { HiBuildingOffice2, HiTruck, HiChartBarSquare } from "react-icons/hi2";
+
+// Data dummy — nanti disambungkan ke API pada tahap berikutnya
+const registrasiData = [
+  { bulan: "Jan", jumlah: 12 },
+  { bulan: "Feb", jumlah: 15 },
+  { bulan: "Mar", jumlah: 18 },
+  { bulan: "Apr", jumlah: 20 },
+  { bulan: "Mei", jumlah: 22 },
+  { bulan: "Jun", jumlah: 16 },
+  { bulan: "Jul", jumlah: 24 },
+  { bulan: "Agu", jumlah: 25 },
+  { bulan: "Sep", jumlah: 21 },
+  { bulan: "Okt", jumlah: 26 },
+  { bulan: "Nov", jumlah: 23 },
+  { bulan: "Des", jumlah: 28 },
+];
+
+const pengadaanData = [
+  { bulan: "Jan", disetujui: 12, validasi: 5, ditolak: 3 },
+  { bulan: "Feb", disetujui: 15, validasi: 7, ditolak: 4 },
+  { bulan: "Mar", disetujui: 18, validasi: 8, ditolak: 4 },
+  { bulan: "Apr", disetujui: 22, validasi: 6, ditolak: 4 },
+  { bulan: "Mei", disetujui: 28, validasi: 7, ditolak: 5 },
+  { bulan: "Jun", disetujui: 20, validasi: 8, ditolak: 4 },
+  { bulan: "Jul", disetujui: 26, validasi: 9, ditolak: 4 },
+  { bulan: "Agu", disetujui: 24, validasi: 7, ditolak: 3 },
+  { bulan: "Sep", disetujui: 22, validasi: 6, ditolak: 5 },
+  { bulan: "Okt", disetujui: 30, validasi: 8, ditolak: 4 },
+  { bulan: "Nov", disetujui: 27, validasi: 6, ditolak: 3 },
+  { bulan: "Des", disetujui: 32, validasi: 7, ditolak: 4 },
+];
 
 export default function KemenkoPanganDashboard() {
-  // Data dummy untuk antrean aktivasi (Pending Activation) sesuai gambar
-  const pendingCooperatives = [
-    { id: 1, name: "Koperasi Tani Makmur Jaya", code: "KOP-2025-0512-0012", region: "Jawa Tengah / Klaten", date: "20 Mei 2025 10:24" },
-    { id: 2, name: "Koperasi Sejahtera Bersama", code: "KOP-2025-0512-0013", region: "Jawa Timur / Jember", date: "20 Mei 2025 09:18" },
-    { id: 3, name: "Koperasi Tani Subur Abadi", code: "KOP-2025-0511-0011", region: "Sulawesi Selatan / Gowa", date: "19 Mei 2025 16:45" },
-    { id: 4, name: "Koperasi Harapan Petani", code: "KOP-2025-0511-0010", region: "Lampung / Lampung Tengah", date: "19 Mei 2025 14:11" },
-    { id: 5, name: "Koperasi Maju Bersama", code: "KOP-2025-0510-0009", region: "Nusa Tenggara Barat / Lombok Timur", date: "18 Mei 2025 11:32" },
-  ];
-
-  // Data dummy untuk direktori master koperasi sesuai gambar
-  const masterCooperatives = [
-    { id: "KOP-0001", name: "Koperasi Tani Sejahtera", code: "KOP-1001", location: "Jawa Barat / Bandung", users: 256, warehouses: 8, status: "Active" },
-    { id: "KOP-0002", name: "Koperasi Makmur Abadi", code: "KOP-1002", location: "Jawa Tengah / Semarang", users: 187, warehouses: 6, status: "Active" },
-    { id: "KOP-0003", name: "Koperasi Tani Subur", code: "KOP-1003", location: "Jawa Timur / Malang", users: 342, warehouses: 10, status: "Active" },
-    { id: "KOP-0004", name: "Koperasi Sumber Rejeki", code: "KOP-1004", location: "Sulawesi Selatan / Maros", users: 198, warehouses: 5, status: "Active" },
-    { id: "KOP-0005", name: "Koperasi Harapan Baru", code: "KOP-1005", location: "Sumatera Utara / Deli Serdang", users: 221, warehouses: 7, status: "Active" },
-  ];
+  const today = new Date().toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div className="w-full font-sans text-slate-800">
-      {/* HEADER SECTION: Menampilkan info Periode Data secara simetris */}
-      <header className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">Ringkasan Eksekutif</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Pusat pemantauan berkas registrasi kuota pupuk subsidi nasional</p>
+      {/* HERO BANNER */}
+      <div className="relative rounded-2xl overflow-hidden mb-6 h-64">
+        <img
+          src="/kemenko-hero.jpg"
+          alt="Petani"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-linear-to-r from-emerald-900/80 via-emerald-800/40 to-transparent" />
+        <div className="relative z-10 p-8 h-full flex flex-col justify-center max-w-lg">
+          <h1 className="text-2xl font-bold text-white mb-2">
+            Dashboard Kemenko
+          </h1>
+          <p className="text-sm text-emerald-50/90 mb-4">
+            Pantau registrasi koperasi dan validasi pengadaan pupuk secara
+            real-time.
+          </p>
+          <span className="text-xs text-emerald-100/80">{today}</span>
         </div>
-        
-        {/* Periode Data Dropdown */}
-        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-3 text-xs font-medium">
-          <span className="text-slate-400">Periode Data</span>
-          <span className="text-slate-700 font-bold">Mei 2025</span>
-        </div>
-      </header>
+      </div>
 
-      {/* 4 STATISTIC CARDS */}
+      {/* 3 CARD NAVIGASI (pengganti menu sidebar) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <NavCard
+          icon={<HiBuildingOffice2 />}
+          title="Manajemen Koperasi"
+          ctaText="Kelola Manajemen"
+          href="/dashboard/kemenko-pangan/cooperative-master"
+        />
+        <NavCard
+          icon={<HiTruck />}
+          title="Validasi Pengada Pupuk"
+          ctaText="Kelola Pupuk"
+          href="/dashboard/kemenko-pangan/validasi-pupuk"
+        />
+        <NavCard
+          icon={<HiChartBarSquare />}
+          title="Laporan"
+          ctaText="Kelola Laporan"
+          href="/dashboard/kemenko-pangan/laporan"
+        />
+      </div>
+
+      {/* 4 KARTU STATISTIK (dummy, akan disambungkan ke API nanti) */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        {/* Card 1 */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/60 flex items-center space-x-4">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl text-xl"><FaUsers /></div>
-          <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Registered Cooperatives</p>
-            <h3 className="text-xl font-black text-slate-900 mt-0.5">1,240</h3>
-            <p className="text-[10px] text-emerald-600 font-medium mt-1">&uarr; 8.5% <span className="text-slate-400 font-normal">dari bulan lalu</span></p>
-          </div>
-        </div>
-
-        {/* Card 2 */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/60 flex items-center space-x-4">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl text-xl"><FaClock /></div>
-          <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Pending Activation Requests</p>
-            <div className="flex items-center space-x-2 mt-0.5">
-              <h3 className="text-xl font-black text-slate-900">12</h3>
-              <span className="text-[9px] bg-red-50 text-red-600 font-extrabold高度 px-1.5 py-0.5 rounded uppercase">Needs Action</span>
-            </div>
-            <p className="text-[10px] text-amber-600 font-medium mt-1">&uarr; 2 <span className="text-slate-400 font-normal">dari minggu lalu</span></p>
-          </div>
-        </div>
-
-        {/* Card 3 */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/60 flex items-center space-x-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl text-xl"><FaWarehouse /></div>
-          <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Active Warehouses</p>
-            <h3 className="text-xl font-black text-slate-900 mt-0.5">3,450</h3>
-            <p className="text-[10px] text-blue-600 font-medium mt-1">&uarr; 5.2% <span className="text-slate-400 font-normal">dari bulan lalu</span></p>
-          </div>
-        </div>
-
-        {/* Card 4 */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/60 flex items-center space-x-4">
-          <div className="p-3 bg-teal-50 text-teal-600 rounded-xl text-xl"><FaSeedling /></div>
-          <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Cumulative Fertilizer Distributed</p>
-            <h3 className="text-xl font-black text-slate-900 mt-0.5">450,000 <span className="text-xs font-normal text-slate-500">Tons</span></h3>
-            <p className="text-[10px] text-emerald-600 font-medium mt-1">&uarr; 12.7% <span className="text-slate-400 font-normal">dari bulan lalu</span></p>
-          </div>
-        </div>
+        <StatCard
+          label="Koperasi Aktif"
+          sub="Koperasi"
+          value={112}
+          delta="8 dari bulan lalu"
+          icon={<HiBuildingOffice2 />}
+        />
+        <StatCard
+          label="Menunggu Registrasi"
+          sub="Registrasi"
+          value={12}
+          delta="4 dari kemarin"
+          icon={<HiBuildingOffice2 />}
+        />
+        <StatCard
+          label="Menunggu Validasi"
+          sub="Validasi"
+          value={30}
+          delta="5 dari kemarin"
+          icon={<HiTruck />}
+        />
+        <StatCard
+          label="Pengadaan Disetujui"
+          sub="Pengajuan"
+          value={180}
+          delta="12 dari bulan lalu"
+          icon={<HiChartBarSquare />}
+          highlighted
+        />
       </div>
 
-      {/* SECTION 1: PENDING ACTIVATION QUEUE */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center space-x-2">
-            <div className="h-6 w-6 bg-amber-500/10 text-amber-600 rounded-lg flex items-center justify-center text-xs font-bold">📋</div>
-            <h2 className="text-sm font-bold text-slate-800">Cooperative Registration Queue (Pending Activation)</h2>
-          </div>
-          <button className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition">Lihat semua</button>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-50 text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                <th className="py-3 px-4 font-semibold w-12">No.</th>
-                <th className="py-3 px-4 font-semibold">Cooperative Name</th>
-                <th className="py-3 px-4 font-semibold">Unique Code</th>
-                <th className="py-3 px-4 font-semibold">Province / Regency</th>
-                <th className="py-3 px-4 font-semibold">Date Submitted</th>
-                <th className="py-3 px-4 font-semibold text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {pendingCooperatives.map((coop, index) => (
-                <tr key={coop.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="py-3.5 px-4 font-medium text-slate-400">{index + 1}</td>
-                  <td className="py-3.5 px-4 font-bold text-slate-900">{coop.name}</td>
-                  <td className="py-3.5 px-4 font-mono text-slate-500">{coop.code}</td>
-                  <td className="py-3.5 px-4 text-slate-600">{coop.region}</td>
-                  <td className="py-3.5 px-4 text-slate-500">{coop.date}</td>
-                  <td className="py-3.5 px-4 text-center">
-                    <button className="bg-[#107349] hover:bg-emerald-800 text-white font-semibold px-4 py-1.5 rounded-lg inline-flex items-center space-x-1.5 shadow-sm transition text-[11px] focus:outline-none">
-                      <FaCheckCircle className="text-[10px]" />
-                      <span>Activate & Generate Account</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* SECTION 2: MASTER COOPERATIVES DIRECTORY */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
-          <div className="flex items-center space-x-2">
-            <div className="h-6 w-6 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-xs font-bold">🏢</div>
-            <h2 className="text-sm font-bold text-slate-800">Master Cooperatives Directory (Active)</h2>
-          </div>
-
-          {/* Search & Filter bar */}
-          <div className="flex items-center space-x-2 text-xs">
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-2.5 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Cari koperasi, kode, atau lokasi..." 
-                className="pl-8 pr-4 py-1.5 w-64 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-700"
+      {/* 2 GRAFIK */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
+          <h3 className="text-sm font-bold text-slate-800 mb-1">
+            Registrasi Koperasi
+          </h3>
+          <p className="text-xs text-slate-400 mb-4">
+            Jumlah koperasi yang mendaftar setiap bulan
+          </p>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={registrasiData}>
+              <XAxis
+                dataKey="bulan"
+                tick={{ fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
               />
-            </div>
-            <button className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 text-slate-600 font-medium transition">
-              <FaFilter className="text-[10px]" />
-              <span>Filter</span>
-            </button>
-          </div>
+              <YAxis
+                tick={{ fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip />
+              <Bar dataKey="jumlah" fill="#0F7B4A" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-50 text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                <th className="py-3 px-4 font-semibold w-12">No.</th>
-                <th className="py-3 px-4 font-semibold">ID</th>
-                <th className="py-3 px-4 font-semibold">Cooperative Name</th>
-                <th className="py-3 px-4 font-semibold">Code</th>
-                <th className="py-3 px-4 font-semibold">Location</th>
-                <th className="py-3 px-4 font-semibold text-center">Total Users</th>
-                <th className="py-3 px-4 font-semibold text-center">Active Warehouses</th>
-                <th className="py-3 px-4 font-semibold text-center">Status</th>
-                <th className="py-3 px-4 font-semibold text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {masterCooperatives.map((coop, index) => (
-                <tr key={coop.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="py-3.5 px-4 font-medium text-slate-400">{index + 1}</td>
-                  <td className="py-3.5 px-4 font-mono font-bold text-slate-700">{coop.id}</td>
-                  <td className="py-3.5 px-4 font-bold text-slate-900">{coop.name}</td>
-                  <td className="py-3.5 px-4 font-mono text-slate-500">{coop.code}</td>
-                  <td className="py-3.5 px-4 text-slate-600">{coop.location}</td>
-                  <td className="py-3.5 px-4 text-center font-semibold">{coop.users}</td>
-                  <td className="py-3.5 px-4 text-center font-semibold">{coop.warehouses}</td>
-                  <td className="py-3.5 px-4 text-center">
-                    <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-md text-[10px]">
-                      {coop.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-center">
-                    <button className="border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold px-3 py-1.5 rounded-lg inline-flex items-center space-x-1 shadow-sm transition text-[11px]">
-                      <span>View Detail</span>
-                      <span className="text-[10px] text-slate-400">&raquo;</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
+          <h3 className="text-sm font-bold text-slate-800 mb-1">
+            Pengadaan Pupuk
+          </h3>
+          <p className="text-xs text-slate-400 mb-4">
+            Status pengajuan pengadaan per bulan
+          </p>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={pengadaanData}>
+              <XAxis
+                dataKey="bulan"
+                tick={{ fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar
+                dataKey="disetujui"
+                stackId="a"
+                fill="#0F7B4A"
+                name="Disetujui"
+                radius={[0, 0, 0, 0]}
+              />
+              <Bar
+                dataKey="validasi"
+                stackId="a"
+                fill="#F5B942"
+                name="Menunggu Validasi"
+              />
+              <Bar
+                dataKey="ditolak"
+                stackId="a"
+                fill="#E0554F"
+                name="Ditolak"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Sub-komponen: Card navigasi menu utama ---
+function NavCard({
+  icon,
+  title,
+  ctaText,
+  href,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  ctaText: string;
+  href: string;
+}) {
+  return (
+    <div className="bg-emerald-50/60 rounded-2xl p-5 flex items-center gap-4">
+      <div className="h-18 w-18 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-5xl shrink-0">
+        {icon}
+      </div>
+      <div>
+        <h3 className="text-xl font-bold text-slate-800 mb-1">{title}</h3>
+        <Link
+          href={href}
+          className="text-sm font-bold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1"
+        >
+          {ctaText} <span>&rarr;</span>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// --- Sub-komponen: Kartu statistik ---
+function StatCard({
+  label,
+  sub,
+  value,
+  delta,
+  icon,
+  highlighted = false,
+}: {
+  label: string;
+  sub: string;
+  value: number;
+  delta: string;
+  icon: React.ReactNode;
+  highlighted?: boolean;
+}) {
+  return (
+    <div
+      className={`bg-white rounded-2xl p-4 border shadow-sm flex items-start gap-3 ${
+        highlighted
+          ? "border-emerald-300 ring-1 ring-emerald-200"
+          : "border-slate-200/60"
+      }`}
+    >
+      <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0">
+        {icon}
+      </div>
+      <div>
+        <p className="text-[11px] font-semibold text-slate-400">{label}</p>
+        <div className="flex items-baseline gap-1 mt-0.5">
+          <h3 className="text-xl font-black text-slate-900">{value}</h3>
+          <span className="text-[11px] text-slate-400">{sub}</span>
+        </div>
+        <p className="text-[10px] text-emerald-600 font-medium mt-1">
+          &uarr; {delta}
+        </p>
       </div>
     </div>
   );

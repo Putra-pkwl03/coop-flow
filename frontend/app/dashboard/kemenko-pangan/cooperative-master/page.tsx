@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import api from "@/app/lib/axios";
-
+import { useRouter } from "next/navigation";
+import { HiArrowLeft } from "react-icons/hi2";
 // Import Komponen Presentasional Global
 import MetricCards from "@/app/components/dashboard/kemenko/MetricCards";
 import FilterBar from "@/app/components/dashboard/kemenko/FilterBar";
@@ -34,6 +35,8 @@ interface ModalState {
 }
 
 export default function CooperativeMasterPage() {
+  const router = useRouter();
+
   const [cooperatives, setCooperatives] = useState<CooperativeViewData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
@@ -281,14 +284,22 @@ export default function CooperativeMasterPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#0F7B4A] tracking-tight">
-            Cooperative Master
-          </h1>
-          <p className="text-sm text-zinc-500">
-            Kelola dan pantau seluruh data master koperasi terdaftar di sistem
-            pusat nasional.
-          </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="h-9 w-9 flex items-center justify-center rounded-full border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-colors shrink-0"
+          >
+            <HiArrowLeft size={18} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-[#0F7B4A] tracking-tight">
+              Cooperative Master
+            </h1>
+            <p className="text-sm text-zinc-500">
+              Kelola dan pantau seluruh data master koperasi terdaftar di sistem
+              pusat nasional.
+            </p>
+          </div>
         </div>
       </div>
 

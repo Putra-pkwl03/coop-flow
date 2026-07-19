@@ -50,7 +50,10 @@ export default function Navbar({
   }, []);
 
   // Flag untuk mendeteksi role yang menggunakan tampilan penuh mandiri tanpa sidebar
-  const isMandatoryFullLayout = currentRole === "admin-lapangan" || currentRole === "dinas-pertanian";
+  const isMandatoryFullLayout =
+    currentRole === "admin-lapangan" ||
+    currentRole === "dinas-pertanian" ||
+    currentRole === "kemenko-pangan";
   
   // Menentukan class warna navbar secara dinamis berdasarkan rumpun layout
   const headerBgClass = isMandatoryFullLayout 
@@ -63,7 +66,7 @@ export default function Navbar({
       {isMandatoryFullLayout ? (
         /* Sisi Kiri untuk role tanpa sidebar (admin-lapangan & dinas-pertanian) */
         <div className="flex items-center space-x-3">
-          <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 p-1.5 shadow-md shadow-emerald-100">
+          <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-linear-to-br from-green-500 to-emerald-600 p-1.5 shadow-md shadow-emerald-100">
             <img src="/logonobg.png" alt="Coopflow" className="h-full w-full object-contain brightness-0 invert" />
           </div>
           <span className="font-extrabold text-lg tracking-tight text-white block leading-none">COOP-FLOW</span>

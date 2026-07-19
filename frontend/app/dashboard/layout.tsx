@@ -63,7 +63,10 @@ export default function AdminKoperasiLayout({ children }: { children: React.Reac
   }
 
   // Menentukan apakah user merupakan role yang tidak menggunakan sidebar (admin-lapangan ATAU dinas-pertanian)
-  const hideSidebar = role === "admin-lapangan" || role === "dinas-pertanian";
+  const hideSidebar =
+    role === "admin-lapangan" ||
+    role === "dinas-pertanian" ||
+    role === "kemenko-pangan";
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc] text-zinc-800 antialiased font-sans">
@@ -82,8 +85,14 @@ export default function AdminKoperasiLayout({ children }: { children: React.Reac
         />
 
         {/* Jika berstatus hideSidebar, layout menggunakan padding simetris penuh (px-6 md:px-12) */}
-        <div className={`w-full mt-8 ${hideSidebar ? "px-6 md:px-12" : "px-6 md:px-10"}`}>
-          <div className="w-full max-w-[1600px] mx-auto">{children}</div>
+        <div
+          className={`w-full mt-8 ${hideSidebar ? "px-4 md:px-6" : "px-6 md:px-10"}`}
+        >
+          <div
+            className={`w-full mx-auto ${hideSidebar ? "max-w-none" : "max-w-[1600px]"}`}
+          >
+            {children}
+          </div>
         </div>
       </div>
     </div>

@@ -52,7 +52,7 @@ export default function Sidebar({ handleLogout, role, isOpen }: SidebarProps) {
       roles: ["kemenko-pangan"],
     },
 
-    // --- MENU PETUGAS KOPERASI (100% AMAN & SESUAI DENGAN REFERENSI DESAIN) ---
+    // --- MENU PETUGAS KOPERASI ---
     {
       name: "Dashboard",
       icon: HiSquares2X2,
