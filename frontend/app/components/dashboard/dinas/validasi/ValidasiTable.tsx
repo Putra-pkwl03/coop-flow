@@ -22,7 +22,7 @@ interface TableProps {
 
 export default function ValidasiTable({ orders }: TableProps) {
   const router = useRouter();
-  const setSelectedId = useProcurementStore((state) => state.setSelectedId); // <-- 2. Ambil fungsi setter dari Zustand
+  const setSelectedId = useProcurementStore((state) => state.setSelectedId);
 
   const getBadgeStyle = (status: string) => {
     switch (status) {

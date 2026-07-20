@@ -90,7 +90,7 @@ export default function DetailStepper({
       
       {/* Stepper Flow Horizontal Modern */}
       <div className="w-full py-2 overflow-x-auto scrollbar-none">
-        <div className="flex items-start justify-between px-2 w-full relative min-w-[768px] md:min-w-0">
+        <div className="flex items-start justify-between px-2 w-full relative min-w-3xl md:min-w-0">
           
           {trackingSteps.map((step, idx) => {
             const Icon = step.icon;
@@ -115,7 +115,7 @@ export default function DetailStepper({
                 
                 {/* KONSTRUKSI GARIS MODERN */}
                 {idx < trackingSteps.length - 1 && (
-                  <div className="absolute top-5 left-[calc(50%+1.5rem)] right-[calc(-50%+1.5rem)] h-[2px] flex items-center -z-0">
+                  <div className="absolute top-5 left-[calc(50%+1.5rem)] right-[calc(-50%+1.5rem)] h-0.5 flex items-center z-0">
                     <svg className="w-full h-full" pointerEvents="none">
                       <line
                         x1="0"
@@ -153,7 +153,7 @@ export default function DetailStepper({
                 </div>
 
                 {/* Label Teks dan Penanggalan Dinamis */}
-                <div className="mt-4 space-y-1 max-w-[120px] relative z-10">
+                <div className="mt-4 space-y-1 max-w-30 relative z-10">
                   <p className={`text-xs font-semibold tracking-tight ${step.isRejected ? "text-red-600" : step.isDone ? "text-zinc-800" : isProcessing ? "text-teal-800 font-bold" : "text-zinc-400"}`}>
                     {step.title}
                   </p>

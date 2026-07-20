@@ -91,13 +91,13 @@ export default function ActionModal({
             <div className="flex justify-between">
               <span className="text-zinc-400">Jumlah Pupuk</span>
               <span className="font-bold text-zinc-800">
-                : {totalKarung} Karung
+                : {data.total_bags_ordered} Karung
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-zinc-400">Total Berat Pupuk</span>
               <span className="font-bold text-zinc-800">
-                : {(totalBerat / 1000).toFixed(3)} Ton
+                : {(data.total_weight_kg / 1000).toFixed(3)} Ton
               </span>
             </div>
           </div>
