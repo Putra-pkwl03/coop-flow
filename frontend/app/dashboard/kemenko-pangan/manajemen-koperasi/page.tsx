@@ -292,8 +292,15 @@ export default function CooperativeMasterPage() {
             <HiArrowLeft size={18} />
           </button>
           <div>
+            <div className="text-xs text-zinc-400 font-semibold mb-1 flex items-center space-x-1">
+              <span>Dashboard</span>
+              <span>&gt;</span>
+              <span className="text-zinc-600 font-bold">
+                Manajemen Koperasi
+              </span>
+            </div>
             <h1 className="text-2xl font-bold text-[#0F7B4A] tracking-tight">
-              Cooperative Master
+              Manajemen Koperasi
             </h1>
             <p className="text-sm text-zinc-500">
               Kelola dan pantau seluruh data master koperasi terdaftar di sistem

@@ -362,5 +362,58 @@ class FarmerSeeder extends Seeder
             'last_fertilizer_amount' => 150.00,
             'last_phase' => 'Penyemaian',
         ]);
+
+
+        // ----------------------------------------------------
+        // PETANI 6: Bapak Slamet (Sleman, DIY — untuk testing Dinas Pertanian Sleman)
+        // ----------------------------------------------------
+        $user6 = User::updateOrCreate(
+            ['email' => 'slamet@email.com'],
+            [
+                'name' => 'Bapak Slamet',
+                'password' => Hash::make('password123'),
+                'phone' => '086789012345',
+                'address' => 'Dusun Sidomulyo RT 02/RW 03, Godean, Sleman',
+            ]
+        );
+        $user6->assignRole('petani');
+
+        $farmer6 = Farmer::create([
+            'user_id' => $user6->id,
+            'farmer_group_id' => $group2->id,
+            'nik' => '3404051205800006',
+            'province_id' => '34',
+            'city_id' => '3404',
+            'district_id' => '340402',
+            'village_id' => '3404022003', 
+            'total_land_area' => 0.80,
+            'notes' => 'Petani padi di wilayah Sleman untuk uji coba filter Dinas Pertanian.',
+        ]);
+
+        $land8 = $farmer6->lands()->create([
+            'land_name' => 'Sawah Sidomulyo',
+            'province_id' => '34',
+            'city_id' => '3404',
+            'district_id' => '340402',
+            'village_id' => '3404022003', 
+            'area' => 0.80,
+            'unit' => 'Hektar(Ha)',
+            'status' => 'Milik Sendiri',
+            'soil_type' => 'Regosol',
+            'water_source' => 'Irigasi Teknis',
+            'irrigation_type' => 'Gravitasi',
+            'average_temperature' => 27.0,
+            'average_humidity' => 76,
+            'average_monthly_precipitation' => 160.00,
+        ]);
+
+        $land8->plants()->create([
+            'name' => 'Padi Mentik Wangi',
+            'planting_date' => '2026-06-05',
+            'current_phase' => 'Vegetatif',
+            'last_fertilizer_type' => 'NPK',
+            'last_fertilizer_amount' => 90.00,
+            'last_phase' => 'Penyemaian',
+        ]);
     }
 }

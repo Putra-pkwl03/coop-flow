@@ -1,0 +1,24 @@
+[90m= [39m[34;4mIlluminate\Database\Eloquent\Collection[39;24m {#8823
+    [34mall[39m: [
+      [34;4mLaravolt\Indonesia\Models\City[39;24m {#8821
+        [34mcode[39m: [32m"[39m[32m3401[39m[32m"[39m,
+        [34mname[39m: [32m"[39m[32mKABUPATEN KULON PROGO[39m[32m"[39m,
+      },
+      [34;4mLaravolt\Indonesia\Models\City[39;24m {#8822
+        [34mcode[39m: [32m"[39m[32m3402[39m[32m"[39m,
+        [34mname[39m: [32m"[39m[32mKABUPATEN BANTUL[39m[32m"[39m,
+      },
+      [34;4mLaravolt\Indonesia\Models\City[39;24m {#8819
+        [34mcode[39m: [32m"[39m[32m3403[39m[32m"[39m,
+        [34mname[39m: [32m"[39m[32mKABUPATEN GUNUNGKIDUL[39m[32m"[39m,
+      },
+      [34;4mLaravolt\Indonesia\Models\City[39;24m {#8818
+        [34mcode[39m: [32m"[39m[32m3404[39m[32m"[39m,
+        [34mname[39m: [32m"[39m[32mKABUPATEN SLEMAN[39m[32m"[39m,
+      },
+      [34;4mLaravolt\Indonesia\Models\City[39;24m {#8817
+        [34mcode[39m: [32m"[39m[32m3471[39m[32m"[39m,
+        [34mname[39m: [32m"[39m[32mKOTA YOGYAKARTA[39m[32m"[39m,
+      },
+    ],
+  }

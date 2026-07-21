@@ -1,0 +1,12 @@
+[90m= [39m[34;4mIlluminate\Database\Eloquent\Collection[39;24m {#8219
+    [34mall[39m: [
+      [34;4mLaravolt\Indonesia\Models\Province[39;24m {#8223
+        [34mid[39m: [35m14[39m,
+        [34mcode[39m: [32m"[39m[32m34[39m[32m"[39m,
+        [34mname[39m: [32m"[39m[32mDAERAH ISTIMEWA YOGYAKARTA[39m[32m"[39m,
+        [34mmeta[39m: [32m"[39m[32m{[39m\"[32mlat[39m\"[32m:[39m\"[32m-7.894921269797175[39m\"[32m,[39m\"[32mlong[39m\"[32m:[39m\"[32m110.44558810593688[39m\"[32m}[39m[32m"[39m,
+        [34mcreated_at[39m: [32m"[39m[32m2026-07-21 02:51:15[39m[32m"[39m,
+        [34mupdated_at[39m: [32m"[39m[32m2026-07-21 02:51:15[39m[32m"[39m,
+      },
+    ],
+  }

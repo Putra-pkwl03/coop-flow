@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import api from "@/app/lib/axios";
 import ValidasiStats from "@/app/components/dashboard/kemenko/validasi/ValidasiStats";
 import ValidasiTable from "@/app/components/dashboard/kemenko/validasi/ValidasiTable";
-import { HiMagnifyingGlass } from "react-icons/hi2";
+import { HiMagnifyingGlass, HiArrowLeft } from "react-icons/hi2";
 
 export default function ValidasiKemenkoPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [search, setSearch] = useState("");
@@ -19,7 +21,6 @@ export default function ValidasiKemenkoPage() {
   });
 
   useEffect(() => {
-    // Endpoint index sama seperti Dinas — BE yang membedakan isinya berdasarkan role user login
     api
       .get("/cooperative/procurement")
       .then((res) => {
@@ -70,20 +71,30 @@ export default function ValidasiKemenkoPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <div>
-        <div className="text-xs text-zinc-400 font-semibold mb-1 flex items-center space-x-1">
-          <span>Dashboard</span>
-          <span>&gt;</span>
-          <span className="text-zinc-600 font-bold">
-            Validasi Kuota Kemenko
-          </span>
+      <div className="flex items-start space-x-3">
+        <button
+          onClick={() => router.back()}
+          className="mt-1 shrink-0 flex items-center justify-center h-9 w-9 rounded-xl border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 transition-colors"
+          aria-label="Kembali"
+        >
+          <HiArrowLeft className="text-lg" />
+        </button>
+
+        <div>
+          <div className="text-xs text-zinc-400 font-semibold mb-1 flex items-center space-x-1">
+            <span>Dashboard</span>
+            <span>&gt;</span>
+            <span className="text-zinc-600 font-bold">
+              Validasi Kuota Kemenko
+            </span>
+          </div>
+          <h1 className="text-2xl font-black text-[#0F7B4A] tracking-tight">
+            Validasi Kuota & Logistik
+          </h1>
+          <p className="text-xs text-zinc-400 font-semibold mt-0.5">
+            Kelola persetujuan kuota dan rilis armada pengiriman pupuk
+          </p>
         </div>
-        <h1 className="text-2xl font-black text-zinc-800 tracking-tight">
-          Validasi Kuota & Logistik
-        </h1>
-        <p className="text-xs text-zinc-400 font-semibold mt-0.5">
-          Kelola persetujuan kuota dan rilis armada pengiriman pupuk
-        </p>
       </div>
 
       <ValidasiStats stats={stats} />
