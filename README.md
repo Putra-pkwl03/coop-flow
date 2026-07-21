@@ -35,11 +35,18 @@ Clone repository proyek lalu buat file konfigurasi environment untuk **Backend (
 
 ```bash
 # Clone repository
-git clone [https://github.com/Putra-pkwl03/coop-flow.git](https://github.com/Putra-pkwl03/coop-flow.git)
+git clone https://github.com/Putra-pkwl03/coop-flow.git
+
+```
+```bash
 cd coop-flow
 
+```
+
+```bash
 # 1. Setup Environment Backend (Laravel)
 cp backend/.env.example backend/.env
+
 ```
 
 > **Catatan:** Jangan lupa untuk menyesuaikan variabel lingkungan di file `backend/.env` dengan konfigurasi database.
@@ -74,8 +81,10 @@ FASTAPI_BASE_URL=http://ml-engine:8000
 FASTAPI_TIMEOUT=30
 EOF
 
+```
 
 # 2. Setup Environment Frontend (Next.js. buat file manual seperti biasa dengan nama .env.local
+```bash
 cat << 'EOF' > frontend/.env.local
 NEXT_PUBLIC_API_URL=[http://127.0.0.1:8000](http://127.0.0.1:8000)
 NEXT_PUBLIC_WEATHER_API_KEY=580138b622128076fd1b6a3651c6a59d
