@@ -1,4 +1,4 @@
-# COOP-FLOW — Platform Manajemen & Prediksi Kebutuhan Pupuk Koperasi
+# COOP-FLOW — Platform Manajemen & Prediksi Kebutuhan Pupuk KDKMP
 
 **COOP-FLOW** adalah sistem terintegrasi untuk mengoptimalkan distribusi pupuk dan prediksi stok pengadaan bagi koperasi desa merah putih. Sistem ini memanfaatkan arsitektur microservices berbasis Docker yang menghubungkan **Next.js** (Frontend), **Laravel** (Backend REST API), **FastAPI** (ML Engine), serta **PostGIS** (Database Spatial).
 
