@@ -52,7 +52,7 @@ cp backend/.env.example backend/.env
 > **Catatan:** Jangan lupa untuk menyesuaikan variabel lingkungan di file `backend/.env` dengan konfigurasi database.
 
 ```bash
-cat << 'EOF' > backend/.env
+cat << 'EOF' > backend/.env #jangan lupa di hapus baris ini 
 APP_NAME=Laravel
 APP_ENV=local
 APP_KEY=
@@ -79,17 +79,18 @@ DB_PASSWORD=secretpassword
 # FastAPI Predictive Engine Configuration
 FASTAPI_BASE_URL=http://ml-engine:8000
 FASTAPI_TIMEOUT=30
-EOF
+EOF #jangan lupa di hapus baris ini
 
 ```
 
-# 2. Setup Environment Frontend (Next.js. buat file manual seperti biasa dengan nama .env.local
+# 2. Setup Environment Frontend Next.js. buat file manual seperti biasa dengan nama .env.local
 ```bash
-cat << 'EOF' > frontend/.env.local
+cat << 'EOF' > frontend/.env.local #jangan lupa di hapus baris ini
 NEXT_PUBLIC_API_URL=[http://127.0.0.1:8000](http://127.0.0.1:8000)
 NEXT_PUBLIC_WEATHER_API_KEY=580138b622128076fd1b6a3651c6a59d
-EOF
+EOF #jangan lupa di hapus baris ini
 
+```
 ### 3. Build & Jalankan Docker Container
 
 Jalankan perintah berikut di direktori utama proyek:
@@ -146,6 +147,21 @@ Setiap akun pengguna berikut disiapkan dengan **Password:** `password123`
 | **Petani (Sleman Testing)** | Bapak Slamet | `slamet@email.com` | Pengujian filter Dinas Pertanian |
 
 ---
+
+## Halaman Login 
+![Halaman Login](image.png)
+
+## Halaman Dashboard Koperasi
+![Halahaman Dashboard Koperasi](image-1.png)
+
+## Halaman Predksi
+![Halaman Predksi dan Manajemen Stok](image-2.png)
+
+## Halaman Distribusi
+![Halaman Status Distribusi](image-3.png)
+
+## Halaman Penyaluran pupuk
+![Halaman Prediksi kebutuhan pupuk per petani](image-4.png)
 
 ## Cara Menjalankan Automated Testing
 
