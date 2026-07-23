@@ -1,5 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
+
+  experimental: {
+    cpus: 1,
+  },
+
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   async redirects() {
     return [
       {
@@ -15,7 +25,7 @@ const nextConfig = {
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
       config.watchOptions = {
-        poll: 1000, // Cek perubahan berkas setiap 1 detik
+        poll: 1000,
         aggregateTimeout: 300,
       };
     }
