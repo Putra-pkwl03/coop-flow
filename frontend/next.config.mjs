@@ -1,10 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    cpus: 1,
+  },
+
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 
   async redirects() {
@@ -22,7 +23,7 @@ const nextConfig = {
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
       config.watchOptions = {
-        poll: 1000, 
+        poll: 1000,
         aggregateTimeout: 300,
       };
     }
