@@ -163,9 +163,9 @@ Setiap akun pengguna berikut disiapkan dengan **Password:** `password123`
 | Role | Nama User | Email | Keterangan |
 | --- | --- | --- | --- |
 | **Admin Lapangan** | Budi Setiawan | `admin.lapangan@coopflow.id` | Terikat pada KUD Makmur Sejahtera |
-| **Petugas Koperasi** | Siti Aminah | `koperasi@coopflow.id` | Terikat pada KUD Makmur Sejahtera |
-| **Dinas Pertanian** | Ir. Ahmad Subarjo | `dinas.pertanian@go.id` | Wilayah Sleman, DIY |
-| **Kemenko Pangan** | Dr. Hendra Wijaya | `kemenko.pangan@go.id` | Tingkat Pusat |
+| **Petugas Koperasi** | Siti Aminah | `riznalprakon@gmail.com` | Terikat pada KUD Makmur Sejahtera |
+| **Dinas Pertanian** | Ir. Ahmad Subarjo | `putrapongkowulu@gmail.com` | Wilayah Sleman, DIY |
+| **Kemenko Pangan** | Dr. Hendra Wijaya | `febipurti855@gmail.com` | Tingkat Pusat |
 | **Petani (Tumpang Sari)** | Bapak Fikri | `fikri@email.com` | Memiliki 2 Lahan (Padi, Jagung, Singkong) |
 | **Petani (Hortikultura)** | Ibu Febiyanti | `febiyanti@email.com` | Memiliki 2 Lahan (Bawang & Cabai Rawit) |
 | **Petani (Padi)** | Bapak Ari | `ari@email.com` | Kelompok Tani Makmur Sentosa |
