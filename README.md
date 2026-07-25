@@ -233,7 +233,7 @@ docker compose logs -f frontend
 ```
 ## Dokumentasi API Swagger
 ```bash
-[docker compose exec ml-engine pytest -v](https://documenter.getpostman.com/view/32171174/2sBY4Qsemg)
+(https://documenter.getpostman.com/view/32171174/2sBY4Qsemg)
 
 ```
 
