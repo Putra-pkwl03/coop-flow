@@ -11,6 +11,54 @@ import {
   HiArrowLeft,
 } from "react-icons/hi2";
 
+// Sub-komponen Skeleton Loading UI
+function ValidasiPengadaanSkeleton() {
+  return (
+    <div className="space-y-6 pb-8 animate-pulse">
+      {/* 1. Header & Breadcrumb Skeleton */}
+      <div className="flex items-start gap-4">
+        <div className="w-9 h-9 bg-zinc-200/80 rounded-full mt-2.5 shrink-0" />
+        <div className="space-y-2">
+          <div className="h-3 bg-zinc-200/80 rounded w-36" />
+          <div className="h-7 bg-zinc-200/80 rounded w-52" />
+          <div className="h-3 bg-zinc-200/80 rounded w-44" />
+        </div>
+      </div>
+
+      {/* 2. Stats Grid Skeleton (5 Cards) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-24 bg-zinc-200/80 rounded-2xl p-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <div className="h-3 bg-zinc-300/80 rounded w-1/2" />
+              <div className="w-6 h-6 bg-zinc-300/80 rounded-lg" />
+            </div>
+            <div className="h-6 bg-zinc-300/80 rounded w-2/3" />
+          </div>
+        ))}
+      </div>
+
+      {/* 3. Toolbar Search & Filter Skeleton */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div className="h-10 bg-zinc-200/80 rounded-xl w-full sm:max-w-md" />
+        <div className="h-10 bg-zinc-200/80 rounded-xl w-full sm:w-28" />
+      </div>
+
+      {/* 4. Table Skeleton */}
+      <div className="bg-zinc-200/80 rounded-2xl p-4 border border-zinc-100 space-y-4">
+        {/* Table Header */}
+        <div className="h-8 bg-zinc-300/60 rounded-xl w-full" />
+        {/* Table Rows */}
+        <div className="space-y-3 pt-2">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-12 bg-zinc-300/40 rounded-xl w-full" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ValidasiPengadaanPage() {
   const router = useRouter();
 
@@ -52,7 +100,6 @@ export default function ValidasiPengadaanPage() {
 
         const perluKonfirmasiFisik = data.filter(
           (o: any) => o.status_logistik === "GUDANG_LINI_3",
-          "APPROVED",
         ).length;
 
         const ditolak = data.filter((o: any) =>

@@ -173,7 +173,6 @@ class FertilizerController extends Controller implements HasMiddleware
         return response()->json(['success' => true, 'message' => 'Pupuk dihapus.'], 200);
     }
 
-
    /**
      * REKAYASA BARU: Otomatisasi Prediksi Pintar dengan Proteksi Overstock & Caching Database
      */

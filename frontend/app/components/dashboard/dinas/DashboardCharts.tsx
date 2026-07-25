@@ -12,12 +12,16 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   LineChart,
   Line,
+  Legend,
 } from "recharts";
 
+// Import komponen peta terpisah milik Anda
+import PetaSebaranMap from "./PetaSebaranMap"; 
+
 interface ChartsProps {
+  petaSebaran?: any;
   donut?: {
     disetujui: number;
     menunggu_validasi: number;
@@ -34,35 +38,25 @@ interface ChartsProps {
 }
 
 export default function DashboardCharts({
+  petaSebaran,
   donut,
   line = [],
   bar = [],
 }: ChartsProps) {
-  // Safe State untuk menangani Hydration Issue Recharts di Next.js
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Total pengajuan
+  // Data Donut
   const donutTotal = donut?.total ?? 0;
-
-  // 1. Data mentah Donut
   const rawDonutData = [
     { name: "Disetujui", value: donut?.disetujui ?? 0, color: "#10B981" },
-    {
-      name: "Menunggu Validasi",
-      value: donut?.menunggu_validasi ?? 0,
-      color: "#F59E0B",
-    },
+    { name: "Menunggu", value: donut?.menunggu_validasi ?? 0, color: "#F59E0B" },
     { name: "Ditolak", value: donut?.ditolak ?? 0, color: "#EF4444" },
   ];
-
-  // 2. Filter hanya data yang nilainya > 0 agar Recharts bisa merender busur lingkaran
   const activeDonutData = rawDonutData.filter((item) => item.value > 0);
-
-  // 3. Fallback: Jika tidak ada data bertipe spesifik yang > 0, gunakan slice netral (abu-abu)
   const donutData =
     activeDonutData.length > 0
       ? activeDonutData
@@ -78,7 +72,7 @@ export default function DashboardCharts({
     return (
       <div className="h-64 flex items-center justify-center bg-white rounded-2xl border border-zinc-100">
         <span className="text-xs text-zinc-400 font-medium">
-          Memuat Grafik...
+          Memuat Panel Visualisasi...
         </span>
       </div>
     );
@@ -86,22 +80,32 @@ export default function DashboardCharts({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Donut Chart (Persentase Status Pengajuan) */}
-        <div className="bg-white p-5 rounded-2xl border border-zinc-100 shadow-sm lg:col-span-1 flex flex-col justify-between">
-          <h3 className="text-sm font-bold text-zinc-700 mb-2">
+      {/* --- BARIS 1: 3 CARD HORIZONTAL (PETA + DONUT + BAR CHART) --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        
+       {/* CARD 1: Peta Sebaran */}
+
+
+    {/* Sesuaikan nama prop menjadi geoJsonData */}
+    <PetaSebaranMap geoJsonData={petaSebaran} />
+ 
+
+
+        {/* CARD 2: Donut Chart Persentase Status */}
+        <div className="bg-white p-5 rounded-2xl border border-zinc-100 shadow-sm flex flex-col justify-between">
+          <h3 className="text-sm font-bold text-zinc-700">
             Persentase Status Pengajuan
           </h3>
 
-          <div className="h-52 flex items-center justify-center relative">
+          <div className="h-44 flex items-center justify-center relative my-auto">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={donutData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
+                  innerRadius={50}
+                  outerRadius={70}
                   paddingAngle={activeDonutData.length > 1 ? 3 : 0}
                   dataKey="value"
                 >
@@ -127,24 +131,24 @@ export default function DashboardCharts({
 
             {/* Teks di Tengah Donut */}
             <div className="absolute text-center pointer-events-none">
-              <p className="text-2xl font-black text-zinc-800">
+              <p className="text-xl font-black text-zinc-800">
                 {donutTotal.toLocaleString()}
               </p>
-              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+              <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider">
                 Pengajuan
               </p>
             </div>
           </div>
 
           {/* Legenda Kustom */}
-          <div className="flex justify-center items-center space-x-4 pt-2 border-t border-zinc-50">
+          <div className="flex justify-center items-center space-x-3 pt-2 border-t border-zinc-50">
             {rawDonutData.map((item, idx) => (
-              <div key={idx} className="flex items-center space-x-1.5">
+              <div key={idx} className="flex items-center space-x-1">
                 <span
-                  className="w-2.5 h-2.5 rounded-full"
+                  className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: item.color }}
                 />
-                <span className="text-[11px] font-semibold text-zinc-500">
+                <span className="text-[10px] font-semibold text-zinc-500">
                   {item.name}
                 </span>
               </div>
@@ -152,16 +156,16 @@ export default function DashboardCharts({
           </div>
         </div>
 
-        {/* Bar Chart (Pengajuan per Kecamatan) */}
-        <div className="bg-white p-5 rounded-2xl border border-zinc-100 shadow-sm lg:col-span-2">
-          <h3 className="text-sm font-bold text-zinc-700 mb-4">
+        {/* CARD 3: Bar Chart Pengajuan per Kecamatan */}
+        <div className="bg-white p-5 rounded-2xl border border-zinc-100 shadow-sm flex flex-col justify-between">
+          <h3 className="text-sm font-bold text-zinc-700">
             Pengajuan per Kecamatan (Kg)
           </h3>
-          <div className="h-60">
+          <div className="h-56 mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={bar}
-                margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -170,12 +174,12 @@ export default function DashboardCharts({
                 />
                 <XAxis
                   dataKey="kecamatan"
-                  tick={{ fontSize: 11, fill: "#71717a" }}
+                  tick={{ fontSize: 10, fill: "#71717a" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: "#71717a" }}
+                  tick={{ fontSize: 10, fill: "#71717a" }}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -201,9 +205,10 @@ export default function DashboardCharts({
             </ResponsiveContainer>
           </div>
         </div>
+
       </div>
 
-      {/* Line Chart (Tren Pengajuan Pupuk) */}
+      {/* --- BARIS 2: TREN PENGAJUAN (LINE CHART) --- */}
       <div className="bg-white p-5 rounded-2xl border border-zinc-100 shadow-sm">
         <h3 className="text-sm font-bold text-zinc-700 mb-4">
           Tren Pengajuan Pupuk (6 Bulan Terakhir)
@@ -249,7 +254,6 @@ export default function DashboardCharts({
                 stroke="#10B981"
                 strokeWidth={2}
                 dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
               />
               <Line
                 type="monotone"
@@ -258,7 +262,6 @@ export default function DashboardCharts({
                 stroke="#F59E0B"
                 strokeWidth={2}
                 dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
               />
               <Line
                 type="monotone"
@@ -267,7 +270,6 @@ export default function DashboardCharts({
                 stroke="#EF4444"
                 strokeWidth={2}
                 dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
               />
             </LineChart>
           </ResponsiveContainer>

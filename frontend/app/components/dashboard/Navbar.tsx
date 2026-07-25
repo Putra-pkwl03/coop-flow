@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import {
   FaBell,
   FaChevronDown,
   FaCloudUploadAlt,
   FaSignOutAlt,
   FaBars,
+  FaUser,
 } from "react-icons/fa";
 
 interface NavbarProps {
@@ -128,7 +130,24 @@ export default function Navbar({
 
           {dropdownOpen && (
             <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-zinc-100/80 py-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-              <button onClick={handleLogout} className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2.5 font-semibold transition">
+              
+              {/* Tombol Menuju Halaman Profil */}
+              <Link 
+                href="/dashboard/admin-koprasi/profil"
+                onClick={() => setDropdownOpen(false)}
+                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center space-x-2.5 font-medium transition"
+              >
+                <FaUser className="text-slate-400" />
+                <span>Profil Saya</span>
+              </Link>
+
+              <div className="my-1 border-t border-slate-100"></div>
+
+              {/* Tombol Keluar */}
+              <button 
+                onClick={handleLogout} 
+                className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2.5 font-semibold transition"
+              >
                 <FaSignOutAlt />
                 <span>Keluar Aplikasi</span>
               </button>

@@ -142,13 +142,8 @@ class CooperativeController extends Controller
         ], 200);
     }
 
-    /**
-     * 5. UPDATE PROFIL / LENGKAPI DATA MANDIRI (Akses: Admin Koperasi)
-     * Digunakan oleh admin koperasi sesaat setelah login pertama kali
-     */
     public function updateProfile(Request $request)
     {
-        // Kunci ID berdasarkan koperasi milik user yang sedang login saat ini (Secure)
         $cooperativeId = auth()->user()->cooperative_id;
 
         if (!$cooperativeId) {
@@ -158,27 +153,39 @@ class CooperativeController extends Controller
         $cooperative = Cooperative::find($cooperativeId);
 
         $validator = Validator::make($request->all(), [
-            'address'                => 'required|string',
-            'latitude'               => 'required|numeric',
-            'longitude'              => 'required|numeric',
-            'warehouse_capacity_ton' => 'required|integer|min:1',
+            'address'                 => 'nullable|string',
+            'latitude'                => 'required|numeric',
+            'longitude'               => 'required|numeric',
+            'warehouse_capacity_ton'  => 'required|integer|min:1',
+            'warehouse_surface_area'  => 'nullable|numeric',
+            'warehouse_facilities'    => 'nullable|string',
+            'nib_cooperative'         => 'nullable|string',
+            'legal_approval_number'   => 'nullable|string',
+            'established_date'        => 'nullable|date',
+            'npwp'                    => 'nullable|string',
+            'email_cooperative'       => 'nullable|email',
+            'phone_cooperative'       => 'nullable|string',
+            'province'                => 'nullable|string',
+            'city_koor'               => 'nullable|string',
+            'district'                => 'nullable|string',
+            'village'                 => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
-        $cooperative->update([
-            'address'                => $request->address,
-            'latitude'               => $request->latitude,
-            'longitude'              => $request->longitude,
-            'warehouse_capacity_ton' => $request->warehouse_capacity_ton,
-            'is_profile_completed'   => true // Profil resmi lengkap
-        ]);
+        // Update seluruh data profil
+        $cooperative->update($request->only([
+            'address', 'latitude', 'longitude', 'warehouse_capacity_ton',
+            'warehouse_surface_area', 'warehouse_facilities', 'nib_cooperative',
+            'legal_approval_number', 'established_date', 'npwp', 'email_cooperative',
+            'phone_cooperative', 'province', 'city_koor', 'district', 'village'
+        ]) + ['is_profile_completed' => true]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Profil dan data logistik koperasi berhasil diperbarui mandiri!',
+            'message' => 'Profil dan data logistik koperasi berhasil diperbarui!',
             'data'    => $cooperative
         ], 200);
     }
@@ -199,6 +206,34 @@ class CooperativeController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Data koperasi berhasil dihapus dari sistem.'
+        ], 200);
+    }
+
+
+   public function getMyCooperative()
+    {
+        $user = auth()->user();
+
+        if (!$user || !$user->cooperative_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Anda tidak terikat dengan data koperasi mana pun.'
+            ], 403);
+        }
+
+        $cooperative = Cooperative::withCount('users')->find($user->cooperative_id);
+
+        if (!$cooperative) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data koperasi tidak ditemukan.'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data profil koperasi berhasil diambil.',
+            'data'    => $cooperative
         ], 200);
     }
 }

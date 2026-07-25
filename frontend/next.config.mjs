@@ -1,15 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
-
-  experimental: {
-    cpus: 1,
-  },
-
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-
   async redirects() {
     return [
       {
@@ -25,7 +15,7 @@ const nextConfig = {
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
       config.watchOptions = {
-        poll: 1000,
+        poll: 1000, // Cek perubahan berkas setiap 1 detik
         aggregateTimeout: 300,
       };
     }
@@ -34,3 +24,43 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
+
+
+
+// /** @type {import('next').NextConfig} */
+// const nextConfig = {
+//   output: 'standalone',
+
+//   experimental: {
+//     cpus: 1,
+//   },
+
+//   typescript: {
+//     ignoreBuildErrors: true,
+//   },
+
+//   async redirects() {
+//     return [
+//       {
+//         source: "/dashboard",
+//         destination: "/auth/login",
+//         permanent: true,
+//       },
+//     ];
+//   },
+
+//   turbopack: {},
+
+//   webpack: (config, { dev, isServer }) => {
+//     if (dev && !isServer) {
+//       config.watchOptions = {
+//         poll: 1000,
+//         aggregateTimeout: 300,
+//       };
+//     }
+//     return config;
+//   },
+// };
+
+// export default nextConfig;
