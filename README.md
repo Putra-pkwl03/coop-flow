@@ -229,10 +229,12 @@ docker compose logs -f backend
 # Melihat log Frontend saja
 docker compose logs -f frontend
 
----
 
+```
 ## Dokumentasi API Swagger
+```bash
+[docker compose exec ml-engine pytest -v](https://documenter.getpostman.com/view/32171174/2sBY4Qsemg)
 
-
+```
 
 
