@@ -18,9 +18,10 @@ interface ProcurementOrder {
 
 interface TableProps {
   orders: ProcurementOrder[];
+  loading?: boolean;
 }
 
-export default function ValidasiTable({ orders }: TableProps) {
+export default function ValidasiTable({ orders, loading }: TableProps) {
   const router = useRouter();
   const setSelectedId = useProcurementStore((state) => state.setSelectedId);
 
@@ -40,9 +41,11 @@ export default function ValidasiTable({ orders }: TableProps) {
   };
 
   const getStatusLabel = (status: string) => {
-    if (status === "APPROVED" || status === "PENDING_KEMENKO") return "Disetujui";
+    if (status === "APPROVED" || status === "PENDING_KEMENKO")
+      return "Disetujui";
     if (status === "PENDING_DINAS") return "Menunggu Validasi";
-    if (status === "REJECTED_DINAS" || status === "REJECTED_KEMENKO") return "Ditolak";
+    if (status === "REJECTED_DINAS" || status === "REJECTED_KEMENKO")
+      return "Ditolak";
     return status;
   };
 
@@ -62,33 +65,72 @@ export default function ValidasiTable({ orders }: TableProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 text-sm">
-            {orders.length === 0 ? (
+            {loading ? (
+              Array.from({ length: 6 }).map((_, idx) => (
+                <tr key={`skeleton-${idx}`} className="animate-pulse">
+                  <td className="p-4 text-center">
+                    <div className="h-3 w-4 bg-zinc-200 rounded mx-auto" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-3 w-24 bg-zinc-200 rounded" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-3 w-32 bg-zinc-200 rounded" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-3 w-16 bg-zinc-200 rounded" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-3 w-16 bg-zinc-200 rounded" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-5 w-20 bg-zinc-200 rounded-full" />
+                  </td>
+                  <td className="p-4 flex justify-end">
+                    <div className="h-3 w-24 bg-zinc-200 rounded" />
+                  </td>
+                </tr>
+              ))
+            ) : orders.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-zinc-400 font-medium">
+                <td
+                  colSpan={7}
+                  className="p-8 text-center text-zinc-400 font-medium"
+                >
                   Tidak ada data pengajuan pengadaan pupuk.
                 </td>
               </tr>
             ) : (
               orders.map((order, idx) => (
-                <tr 
-                  key={order.id} 
+                <tr
+                  key={order.id}
                   onClick={() => {
-                    setSelectedId(order.id); // <-- 3. Simpan ID ke Zustand secara aman
-                    router.push("/dashboard/dinas-pertanian/validasi-pengadaan/detail"); // <-- 4. Arahkan ke URL statis tanpa ID
+                    setSelectedId(order.id);
+                    router.push(
+                      "/dashboard/dinas-pertanian/validasi-pengadaan/detail",
+                    );
                   }}
                   className="hover:bg-zinc-50/80 transition duration-150 cursor-pointer group"
                 >
-                  <td className="p-4 text-center font-semibold text-zinc-400">{idx + 1}</td>
+                  <td className="p-4 text-center font-semibold text-zinc-400">
+                    {idx + 1}
+                  </td>
                   <td className="p-4 font-bold text-emerald-700 group-hover:underline">
                     {order.po_number}
                   </td>
-                  <td className="p-4 text-zinc-800 font-semibold">{order.cooperative?.name || "-"}</td>
-                  <td className="p-4 text-zinc-500 font-medium">{order.district || "Sleman"}</td>
+                  <td className="p-4 text-zinc-800 font-semibold">
+                    {order.cooperative?.name || "-"}
+                  </td>
+                  <td className="p-4 text-zinc-500 font-medium">
+                    {order.district || "Sleman"}
+                  </td>
                   <td className="p-4 text-zinc-900 font-black">
                     {(order.total_weight_kg / 1000).toFixed(3)} Kg
                   </td>
                   <td className="p-4">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getBadgeStyle(order.status_verifikasi)}`}>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getBadgeStyle(order.status_verifikasi)}`}
+                    >
                       {getStatusLabel(order.status_verifikasi)}
                     </span>
                   </td>

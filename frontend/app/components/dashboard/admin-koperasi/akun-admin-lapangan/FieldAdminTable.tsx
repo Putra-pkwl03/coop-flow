@@ -90,9 +90,44 @@ export default function FieldAdminTable({
           </thead>
           <tbody>
             {loading ? (
+              Array.from({ length: pageSize }).map((_, idx) => (
+                <tr
+                  key={`skeleton-${idx}`}
+                  className="border-b border-gray-50 animate-pulse"
+                >
+                  <td className="p-4">
+                    <div className="h-3 w-4 bg-gray-200 rounded" />
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gray-200 shrink-0" />
+                      <div className="h-3 w-28 bg-gray-200 rounded" />
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="h-3 w-36 bg-gray-200 rounded" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-3 w-24 bg-gray-200 rounded" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-3 w-32 bg-gray-200 rounded" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-5 w-16 bg-gray-200 rounded-full" />
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gray-200 rounded-lg" />
+                      <div className="w-8 h-8 bg-gray-200 rounded-lg" />
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : paginatedAdmins.length === 0 ? (
               <tr>
                 <td colSpan={7} className="p-8 text-center text-gray-400">
-                  Memuat data...
+                  Tidak ada data ditemukan.
                 </td>
               </tr>
             ) : paginatedAdmins.length === 0 ? (

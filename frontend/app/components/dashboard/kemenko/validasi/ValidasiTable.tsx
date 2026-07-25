@@ -19,9 +19,10 @@ interface ProcurementOrder {
 
 interface TableProps {
   orders: ProcurementOrder[];
+  loading?: boolean;
 }
 
-export default function ValidasiTable({ orders }: TableProps) {
+export default function ValidasiTable({ orders, loading }: TableProps) {
   const router = useRouter();
   const setSelectedId = useProcurementStore((state) => state.setSelectedId);
 
@@ -85,7 +86,33 @@ export default function ValidasiTable({ orders }: TableProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 text-sm">
-            {orders.length === 0 ? (
+            {loading ? (
+              Array.from({ length: 6 }).map((_, idx) => (
+                <tr key={`skeleton-${idx}`} className="animate-pulse">
+                  <td className="p-4 text-center">
+                    <div className="h-3 w-4 bg-zinc-200 rounded mx-auto" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-3 w-24 bg-zinc-200 rounded" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-3 w-32 bg-zinc-200 rounded" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-3 w-16 bg-zinc-200 rounded" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-5 w-20 bg-zinc-200 rounded-full" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-5 w-20 bg-zinc-200 rounded-full" />
+                  </td>
+                  <td className="p-4 flex justify-end">
+                    <div className="h-3 w-24 bg-zinc-200 rounded" />
+                  </td>
+                </tr>
+              ))
+            ) : orders.length === 0 ? (
               <tr>
                 <td
                   colSpan={7}

@@ -180,8 +180,94 @@ export default function DetailAnggota({
 
   if (loading)
     return (
-      <div className="p-6 text-center text-gray-500">
-        Memuat profil lengkap...
+      <div className="bg-gray-50 min-h-screen text-gray-800">
+        {/* Header & Tombol Kembali tetap tampil */}
+        <div className="flex items-center gap-3 mb-2">
+          <button
+            onClick={onBack}
+            className="p-2 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg transition-colors shadow-xs"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2.5}
+              stroke="currentColor"
+              className="w-5 h-5 text-gray-700"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
+              />
+            </svg>
+          </button>
+          <h1 className="text-xl font-bold text-gray-950">Detail Petani</h1>
+        </div>
+
+        {/* SKELETON KARTU PROFIL ATAS */}
+        <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-xs flex flex-col md:flex-row items-stretch gap-6 w-full animate-pulse">
+          <div className="flex items-center gap-5 flex-[1.2] min-w-70">
+            <div className="w-20 h-20 bg-zinc-200 rounded-full shrink-0" />
+            <div className="space-y-2.5 flex-1">
+              <div className="h-4 w-36 bg-zinc-200 rounded" />
+              <div className="h-3 w-28 bg-zinc-200 rounded" />
+              <div className="h-5 w-40 bg-zinc-200 rounded-md" />
+            </div>
+          </div>
+
+          <div className="hidden md:block w-px bg-zinc-200 self-stretch my-2" />
+          <div className="flex flex-col justify-center space-y-4 flex-1 pl-0 md:pl-2">
+            <div className="space-y-1.5">
+              <div className="h-2.5 w-16 bg-zinc-200 rounded" />
+              <div className="h-3.5 w-24 bg-zinc-200 rounded" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="h-2.5 w-12 bg-zinc-200 rounded" />
+              <div className="h-3.5 w-32 bg-zinc-200 rounded" />
+            </div>
+          </div>
+
+          <div className="hidden md:block w-px bg-zinc-200 self-stretch my-2" />
+          <div className="flex flex-col justify-center space-y-4 flex-1 pl-0 md:pl-2">
+            <div className="space-y-1.5">
+              <div className="h-2.5 w-14 bg-zinc-200 rounded" />
+              <div className="h-3.5 w-20 bg-zinc-200 rounded" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="h-2.5 w-16 bg-zinc-200 rounded" />
+              <div className="h-3.5 w-24 bg-zinc-200 rounded" />
+            </div>
+          </div>
+
+          <div className="hidden md:block w-px bg-zinc-200 self-stretch my-2" />
+          <div className="flex flex-col justify-center space-y-4 flex-1 pl-0 md:pl-2">
+            <div className="space-y-1.5">
+              <div className="h-2.5 w-16 bg-zinc-200 rounded" />
+              <div className="h-3.5 w-20 bg-zinc-200 rounded" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="h-2.5 w-20 bg-zinc-200 rounded" />
+              <div className="h-3.5 w-24 bg-zinc-200 rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* SKELETON KARTU LAHAN (collapsed) */}
+        {Array.from({ length: 2 }).map((_, idx) => (
+          <div
+            key={`land-skeleton-${idx}`}
+            className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden mb-4 animate-pulse"
+          >
+            <div className="w-full p-4 md:p-5 bg-white flex items-center justify-between border-b border-zinc-100">
+              <span className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-zinc-200 shrink-0" />
+                <div className="h-3.5 w-32 bg-zinc-200 rounded" />
+              </span>
+              <div className="w-4 h-4 bg-zinc-200 rounded" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   if (error || !farmer)
@@ -192,7 +278,7 @@ export default function DetailAnggota({
     );
 
   return (
-    <div className="p-2 space-y-5 bg-gray-50 min-h-screen text-gray-800">
+    <div className=" bg-gray-50 min-h-screen text-gray-800">
       {/* Header & Tombol Kembali */}
       <div className="flex items-center gap-3 mb-2">
         <button

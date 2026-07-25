@@ -14,7 +14,6 @@ interface StatCardProps {
   icon: React.ReactNode;
   bgColor?: string;
   iconColor?: string;
-  highlighted?: boolean;
   loading?: boolean;
 }
 
@@ -26,17 +25,10 @@ function StatCard({
   icon,
   bgColor = "bg-emerald-50",
   iconColor = "text-emerald-600",
-  highlighted = false,
   loading = false,
 }: StatCardProps) {
   return (
-    <div
-      className={`bg-white rounded-2xl p-5 border shadow-xs flex items-start gap-4 ${
-        highlighted
-          ? "border-emerald-300 ring-1 ring-emerald-200"
-          : "border-slate-200/60"
-      }`}
-    >
+    <div className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-xs flex items-start gap-4 transition-all duration-150 hover:border-emerald-300 hover:ring-1 hover:ring-emerald-200">
       <div
         className={`h-12 w-12 rounded-xl ${bgColor} ${iconColor} flex items-center justify-center text-2xl shrink-0`}
       >
@@ -59,7 +51,6 @@ function StatCard({
     </div>
   );
 }
-
 interface StatCardsSectionProps {
   stats: {
     koperasiAktif: number;
@@ -114,7 +105,6 @@ export default function StatCardsSection({
         icon={<HiCheckBadge />}
         bgColor="bg-emerald-50"
         iconColor="text-emerald-600"
-        highlighted
         loading={loading}
       />
     </div>

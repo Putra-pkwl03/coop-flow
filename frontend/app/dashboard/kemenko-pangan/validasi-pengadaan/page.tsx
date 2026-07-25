@@ -58,16 +58,7 @@ export default function ValidasiKemenkoPage() {
     setFilteredOrders(result);
   }, [search, orders]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-100 space-y-3">
-        <div className="animate-spin rounded-full h-9 w-9 border-b-2 border-emerald-600" />
-        <span className="text-xs font-bold text-zinc-400 tracking-wider uppercase">
-          Sinkronisasi Dokumen...
-        </span>
-      </div>
-    );
-  }
+  // BLOK "if (loading) return (...)" DIHAPUS
 
   return (
     <div className="space-y-6 pb-8">
@@ -97,7 +88,7 @@ export default function ValidasiKemenkoPage() {
         </div>
       </div>
 
-      <ValidasiStats stats={stats} />
+      <ValidasiStats stats={stats} loading={loading} />
 
       <div className="relative w-full sm:max-w-md">
         <HiMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-lg" />
@@ -110,7 +101,7 @@ export default function ValidasiKemenkoPage() {
         />
       </div>
 
-      <ValidasiTable orders={filteredOrders} />
+      <ValidasiTable orders={filteredOrders} loading={loading} />
     </div>
   );
 }

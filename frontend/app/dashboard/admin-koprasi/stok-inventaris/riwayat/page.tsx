@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import api from "../../../../lib/axios"; //
+import api from "../../../../lib/axios";
 import {
   FaSearch,
   FaArrowDown,
@@ -10,8 +10,8 @@ import {
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 import InventoryTabs from "@/app/components/dashboard/admin-koperasi/inventory/InventoryTabs";
+import InventorySummary from "@/app/components/dashboard/admin-koperasi/inventory/InventorySummary";
 
-// Definisi tipe data berdasarkan skema JSON backend Laravel kamu
 interface MutationHistoryItem {
   id: number;
   fertilizer_id: number;
@@ -32,9 +32,9 @@ interface MutationHistoryItem {
 export default function RiwayatStokPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [histories, setHistories] = useState<MutationHistoryItem[]>([]);
+  const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Inisialisasi konfigurasi Toast SweetAlert2
   const Toast = Swal.mixin({
     toast: true,
     position: "top-end",
@@ -43,20 +43,25 @@ export default function RiwayatStokPage() {
     timerProgressBar: true,
   });
 
-  // Ambil data riwayat mutasi dari backend saat halaman diakses
   useEffect(() => {
-    api
-      .get("/cooperative/inventory/history")
-      .then((response) => {
-        // PERBAIKAN: Cek 'success' (boolean) sesuai standar backend Laravel Anda
-        if (response.data.success === true || response.data.data) {
-          setHistories(response.data.data || []);
+    setLoading(true);
+
+    const fetchHistory = api.get("/cooperative/inventory/history");
+    const fetchOverview = api.get("/cooperative/inventory/overview");
+
+    Promise.all([fetchHistory, fetchOverview])
+      .then(([historyRes, overviewRes]) => {
+        if (historyRes.data.success === true || historyRes.data.data) {
+          setHistories(historyRes.data.data || []);
         } else {
-          // Opsional: Handle jika response success false tapi tidak masuk catch
           Toast.fire({
             icon: "error",
-            title: response.data.message || "Gagal mengambil data",
+            title: historyRes.data.message || "Gagal mengambil data",
           });
+        }
+
+        if (overviewRes.data.success) {
+          setSummary(overviewRes.data.data);
         }
       })
       .catch((error) => {
@@ -71,7 +76,6 @@ export default function RiwayatStokPage() {
       });
   }, []);
 
-  // Fungsi memformat string waktu ISO ke format tanggal lokal Indonesia
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -89,10 +93,49 @@ export default function RiwayatStokPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full space-y-4">
+      <div className="flex flex-col h-full space-y-4 animate-pulse">
         <InventoryTabs />
-        <div className="p-8 text-center text-zinc-500 font-medium animate-pulse">
-          Memuat data riwayat mutasi...
+
+        {/* SKELETON SUMMARY CARDS — 5 card, menyerupai InventorySummary */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {[...Array(5)].map((_, idx) => (
+            <div
+              key={idx}
+              className="bg-white py-4 px-6 rounded-lg border border-zinc-100 shadow-sm flex items-center gap-5 min-h-35"
+            >
+              <div className="w-14 h-14 bg-zinc-200 rounded-full shrink-0" />
+              <div className="flex flex-col justify-center space-y-3 w-full">
+                <div className="h-3 w-20 bg-zinc-200 rounded" />
+                <div className="h-5 w-14 bg-zinc-200 rounded" />
+                <div className="h-2.5 w-16 bg-zinc-200 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* SKELETON BAR PENCARIAN */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-xl border border-zinc-100 shadow-sm">
+          <div className="h-9 w-full sm:w-80 bg-zinc-200 rounded-xl" />
+          <div className="h-9 w-40 bg-zinc-200 rounded-xl" />
+        </div>
+
+        {/* SKELETON TABEL */}
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+          <div className="p-4 space-y-4">
+            <div className="h-8 bg-zinc-100 rounded-md w-full" />
+            {[...Array(6)].map((_, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-5 gap-4 py-2 border-b border-zinc-100 last:border-0"
+              >
+                <div className="h-4 bg-zinc-200 rounded w-3/4" />
+                <div className="h-4 bg-zinc-200 rounded w-2/3" />
+                <div className="h-4 bg-zinc-200 rounded w-1/2 mx-auto" />
+                <div className="h-4 bg-zinc-200 rounded w-1/2 ml-auto" />
+                <div className="h-4 bg-zinc-200 rounded w-3/4" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -100,8 +143,9 @@ export default function RiwayatStokPage() {
 
   return (
     <div className="flex flex-col h-full space-y-4 animate-fadeIn">
-      {/* TAB NAVIGASI — sama seperti di halaman Stok Saat Ini */}
-      <InventoryTabs />
+
+      {/* CARD RINGKASAN — sama seperti di halaman Stok Saat Ini */}
+      <InventorySummary summary={summary} />
 
       {/* BAR PENCARIAN */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-xl border border-zinc-100 shadow-sm">
@@ -120,6 +164,9 @@ export default function RiwayatStokPage() {
           <span>Periode: Semua Waktu</span>
         </div>
       </div>
+
+       {/* TAB NAVIGASI — sama seperti di halaman Stok Saat Ini */}
+      <InventoryTabs />
 
       {/* TABEL DATA RIWAYAT */}
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">

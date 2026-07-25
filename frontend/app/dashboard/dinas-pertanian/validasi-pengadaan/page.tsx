@@ -1,18 +1,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; // 1. Import useRouter
+import { useRouter } from "next/navigation";
 import api from "@/app/lib/axios";
 import ValidasiStats from "@/app/components/dashboard/dinas/validasi/ValidasiStats";
 import ValidasiTable from "@/app/components/dashboard/dinas/validasi/ValidasiTable";
 import {
   HiMagnifyingGlass,
   HiAdjustmentsHorizontal,
-  HiArrowLeft, // 2. Import ikon panah kiri
+  HiArrowLeft,
 } from "react-icons/hi2";
 
 export default function ValidasiPengadaanPage() {
-  const router = useRouter(); // 3. Inisialisasi router
+  const router = useRouter();
 
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
@@ -78,22 +78,10 @@ export default function ValidasiPengadaanPage() {
     setFilteredOrders(result);
   }, [search, orders]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-100 space-y-3">
-        <div className="animate-spin rounded-full h-9 w-9 border-b-2 border-emerald-600" />
-        <span className="text-xs font-bold text-zinc-400 tracking-wider uppercase">
-          Sinkronisasi Dokumen...
-        </span>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 pb-8">
       {/* Breadcrumb & Title */}
       <div className="flex items-start gap-4">
-        {/* 4. Tambahkan Tombol Kembali */}
         <button
           onClick={() => router.back()}
           className="mt-2.5 p-2 rounded-full hover:bg-zinc-200 text-zinc-500 transition-colors"
@@ -102,7 +90,6 @@ export default function ValidasiPengadaanPage() {
           <HiArrowLeft className="text-xl" />
         </button>
 
-        {/* Pembungkus teks judul */}
         <div>
           <div className="text-xs text-zinc-400 font-semibold mb-1 flex items-center space-x-1">
             <span>Dashboard</span>
@@ -119,7 +106,7 @@ export default function ValidasiPengadaanPage() {
       </div>
 
       {/* Komponen Statistik Grid */}
-      <ValidasiStats stats={stats} />
+      <ValidasiStats stats={stats} loading={loading} />
 
       {/* Toolbar Pencarian & Filter */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
@@ -140,7 +127,7 @@ export default function ValidasiPengadaanPage() {
       </div>
 
       {/* Komponen Tabel Utama */}
-      <ValidasiTable orders={filteredOrders} />
+      <ValidasiTable orders={filteredOrders} loading={loading} />
     </div>
   );
 }
