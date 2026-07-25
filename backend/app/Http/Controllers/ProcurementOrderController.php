@@ -6,9 +6,13 @@ use App\Models\ProcurementOrder;
 use App\Models\ProcurementOrderItem;
 use App\Models\ProcurementOrderRevision;
 use App\Models\InventoryMutation;
+use App\Models\User;
+use App\Mail\ProcurementSubmittedMail;
+use App\Mail\ProcurementVerifiedMail;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class ProcurementOrderController extends Controller
@@ -94,7 +98,7 @@ class ProcurementOrderController extends Controller
         ], 200);
     }
 
-    /**
+  /**
      * STAGE 1: SUBMIT OLEH KOPERASI KDMP
      */
     public function store(Request $request): JsonResponse
@@ -193,7 +197,16 @@ class ProcurementOrderController extends Controller
             ]);
 
             DB::commit();
-            return response()->json(['success' => true, 'message' => 'Pengadaan pupuk berhasil diajukan ke Dinas Pertanian & Rekomendasi AI berhasil disinkronkan.', 'data' => $order], 201);
+
+            // 📧 LOGIKA EMAIL: Kirim notifikasi ke Dinas Pertanian Kabupaten setempat
+            $order->load('cooperative');
+            $this->sendEmailToDinas($order);
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'Pengadaan pupuk berhasil diajukan ke Dinas Pertanian & Rekomendasi AI berhasil disinkronkan.', 
+                'data' => $order
+            ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -216,7 +229,7 @@ class ProcurementOrderController extends Controller
             'notes' => 'string|nullable'
         ]);
 
-        $order = ProcurementOrder::findOrFail($id);
+        $order = ProcurementOrder::with('cooperative')->findOrFail($id);
 
         if ($order->status_verifikasi !== 'PENDING_DINAS') {
             return response()->json(['success' => false, 'message' => 'Status dokumen tidak valid untuk verifikasi Dinas.'], 400);
@@ -227,23 +240,41 @@ class ProcurementOrderController extends Controller
                 'status_verifikasi' => 'REJECTED_DINAS',
                 'rejection_reason' => $request->rejection_reason
             ]);
+
+            // 📧 Kirim Email ke Koperasi
+            $this->sendEmailToCooperative($order);
+
             return response()->json(['success' => true, 'message' => 'Dokumen pengadaan ditolak oleh Dinas Pertanian.']);
         }
 
         if ($request->action === 'ADJUST') {
-            return $this->applyAdjustment(
+            $response = $this->applyAdjustment(
                 order: $order,
                 request: $request,
                 stage: 'DINAS',
                 nextStatus: 'PENDING_KEMENKO_ADJUSTED',
                 successMessage: 'Dinas Pertanian menyesuaikan jumlah pengadaan & meneruskannya ke Kemenko.'
             );
+
+            // Refresh order agar status & item terbaru terbawa
+            $order->refresh();
+
+            // 📧 Kirim Email Berantai ke Koperasi DAN Kemenko
+            $this->sendEmailToCooperative($order);
+            $this->sendEmailToKemenko($order);
+
+            return $response;
         }
 
+        // Action APPROVE
         $order->update([
             'status_verifikasi' => 'PENDING_KEMENKO',
             'notes_from_verifier' => $request->notes
         ]);
+
+        // 📧 Kirim Email Berantai ke Koperasi DAN Kemenko
+        $this->sendEmailToCooperative($order);
+        $this->sendEmailToKemenko($order);
 
         return response()->json(['success' => true, 'message' => 'Dokumen disetujui Dinas Pertanian & diteruskan ke Kemenko.']);
     }
@@ -263,7 +294,7 @@ class ProcurementOrderController extends Controller
             'notes' => 'string|nullable'
         ]);
 
-        $order = ProcurementOrder::findOrFail($id);
+        $order = ProcurementOrder::with('cooperative')->findOrFail($id);
 
         if (!in_array($order->status_verifikasi, self::KEMENKO_QUEUE_STATUSES)) {
             return response()->json(['success' => false, 'message' => 'Status dokumen tidak valid untuk verifikasi Kemenko.'], 400);
@@ -274,11 +305,16 @@ class ProcurementOrderController extends Controller
                 'status_verifikasi' => 'REJECTED_KEMENKO',
                 'rejection_reason' => $request->rejection_reason
             ]);
+
+            // 📧 Kirim Email ke Koperasi DAN Dinas
+            $this->sendEmailToCooperative($order);
+            $this->sendEmailToDinas($order);
+
             return response()->json(['success' => true, 'message' => 'Dokumen pengadaan resmi ditolak oleh Kemenko.']);
         }
 
         if ($request->action === 'ADJUST') {
-            return $this->applyAdjustment(
+            $response = $this->applyAdjustment(
                 order: $order,
                 request: $request,
                 stage: 'KEMENKO',
@@ -286,18 +322,96 @@ class ProcurementOrderController extends Controller
                 successMessage: 'Kemenko menyesuaikan alokasi kuota pengadaan. Nilai baru dikunci & diteruskan ke PT Pupuk Indonesia untuk persiapan logistik.',
                 extraUpdates: ['status_logistik' => 'NONE']
             );
+
+            $order->refresh();
+
+            // 📧 Kirim Email ke Koperasi DAN Dinas
+            $this->sendEmailToCooperative($order);
+            $this->sendEmailToDinas($order);
+
+            return $response;
         }
 
+        // Action APPROVE
         $order->update([
             'status_verifikasi' => 'APPROVED',
             'status_logistik' => 'NONE',
             'notes_from_verifier' => $request->notes
         ]);
 
+        // 📧 Kirim Email ke Koperasi DAN Dinas
+        $this->sendEmailToCooperative($order);
+        $this->sendEmailToDinas($order);
+
         return response()->json([
             'success' => true, 
             'message' => 'Dokumen disetujui Kemenko. Alokasi kuota dikunci dan diteruskan ke PT Pupuk Indonesia untuk persiapan logistik.'
         ]);
+    }
+
+    /* =========================================================================
+     * HELPER METHODS UNTUK NOTIFIKASI EMAIL
+     * ========================================================================= */
+
+    /**
+     * Helper Method: Kirim Email ke Koperasi
+     */
+    private function sendEmailToCooperative(ProcurementOrder $order): void
+    {
+        try {
+            $cooperativeEmail = $order->cooperative->email_cooperative ?? null;
+
+            if ($cooperativeEmail) {
+                Mail::to($cooperativeEmail)->send(new ProcurementVerifiedMail($order));
+                \Log::info("Email verifikasi berhasil dikirim ke Koperasi: {$cooperativeEmail} (Order PO: {$order->po_number})");
+            } else {
+                \Log::warning("Gagal kirim email: Koperasi ID {$order->cooperative_id} tidak memiliki 'email_cooperative'.");
+            }
+        } catch (\Exception $e) {
+            \Log::error("Gagal kirim email ke Koperasi: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Helper Method: Kirim Email ke Dinas Pertanian Kabupaten Terkait
+     */
+    private function sendEmailToDinas(ProcurementOrder $order): void
+    {
+        try {
+            if ($order->cooperative && $order->cooperative->city_koor) {
+                $dinasUser = User::role('dinas-pertanian')
+                    ->whereRaw('LOWER(city_code) = ?', [strtolower($order->cooperative->city_koor)])
+                    ->first();
+
+                if ($dinasUser && $dinasUser->email) {
+                   Mail::to($dinasUser->email)->send(new ProcurementSubmittedMail($order, 'Dinas Pertanian'));
+                    \Log::info("Email notifikasi berhasil dikirim ke Dinas: {$dinasUser->email} (Kab/Kota: {$order->cooperative->city_koor})");
+                } else {
+                    \Log::warning("Gagal kirim email: Tidak ditemukan User Dinas Pertanian untuk city_code {$order->cooperative->city_koor}.");
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error("Gagal kirim email ke Dinas Pertanian: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Helper Method: Kirim Email ke Admin / Role Kemenko
+     */
+    private function sendEmailToKemenko(ProcurementOrder $order): void
+    {
+        try {
+            $kemenkoEmails = User::role('kemenko-pangan')->pluck('email')->filter();
+
+            if ($kemenkoEmails->isNotEmpty()) {
+               Mail::to($kemenkoEmails)->send(new ProcurementSubmittedMail($order, 'Kemenko'));
+                \Log::info("Email pengajuan berhasil dikirim ke Kemenko: " . implode(', ', $kemenkoEmails->toArray()));
+            } else {
+                \Log::warning("Gagal kirim email: Tidak ditemukan User dengan role 'kemenko'.");
+            }
+        } catch (\Exception $e) {
+            \Log::error("Gagal kirim email ke Kemenko: " . $e->getMessage());
+        }
     }
 
     /**
@@ -401,7 +515,7 @@ class ProcurementOrderController extends Controller
         }
     }
 
-    /**
+   /**
      * STAGE 3B: RILIS PENGIRIMAN LOGISTIK OLEH KEMENKO
      */
     public function dispatchShipmentByKemenko($id): JsonResponse
@@ -473,6 +587,10 @@ class ProcurementOrderController extends Controller
             'notes_from_verifier' => implode(" | ", $logistikNotes)
         ]);
 
+        // 📧 1. RILIS ARMADA: Kirim Notifikasi ke Koperasi & Dinas Pertanian
+        $this->sendEmailToCooperative($order);
+        $this->sendEmailToDinasVerifiedNotice($order);
+
         return response()->json([
             'success' => true, 
             'message' => 'Armada logistik resmi dirilis dari pusat. Perhitungan komprehensif logistik aktif.',
@@ -486,8 +604,7 @@ class ProcurementOrderController extends Controller
     }
 
     /**
-     * STAGE 4: DINAS PERTANIAN KLIK SAAT PUPUK TIBA DI KABUPATEN
-     * 🟢 Ditingkatkan untuk mencatat jumlah fisik diterima & catatan Berita Acara penerimaan
+     * STAGE 4: DINAS PERTANIAN KLIK SAAT PUPUK TIBA DI KABUPATEN (LINI 3)
      */
     public function updateToLiniTiga(Request $request, $id): JsonResponse
     {
@@ -498,7 +615,7 @@ class ProcurementOrderController extends Controller
             'receipt_notes' => 'nullable|string',
         ]);
 
-        $order = ProcurementOrder::with('items')->findOrFail($id);
+        $order = ProcurementOrder::with(['items', 'cooperative'])->findOrFail($id);
 
         if ($order->status_logistik !== 'PROD_LINI_1_2') {
             return response()->json([
@@ -509,7 +626,6 @@ class ProcurementOrderController extends Controller
 
         DB::beginTransaction();
         try {
-            // Update jumlah fisik diterima per item (jika dikirim oleh frontend)
             if ($request->has('items') && is_array($request->items)) {
                 foreach ($request->items as $itemData) {
                     $item = $order->items->firstWhere('id', $itemData['id']);
@@ -528,6 +644,10 @@ class ProcurementOrderController extends Controller
             ]);
 
             DB::commit();
+
+            // 📧 2. PUPUK TIBA DI DINAS (LINI 3): Kirim Notifikasi ke Kemenko & Koperasi
+            $this->sendEmailToKemenkoVerifiedNotice($order);
+            $this->sendEmailToCooperative($order);
 
             return response()->json([
                 'success' => true, 
@@ -548,22 +668,24 @@ class ProcurementOrderController extends Controller
      */
     public function releaseToLiniEmpat($id): JsonResponse
     {
-        $order = ProcurementOrder::findOrFail($id);
+        $order = ProcurementOrder::with('cooperative')->findOrFail($id);
         
         $order->update([
             'status_logistik' => 'SIAP_TEBUS_LINI_4'
         ]);
 
+        // 📧 Notifikasi tambahan ke Koperasi bahwa jatah pupuk sudah dapat ditebus
+        $this->sendEmailToCooperative($order);
+
         return response()->json(['success' => true, 'message' => 'Kuota resmi dilepas Dinas. Koperasi sekarang dapat menebus pupuk bersubsidi ini.']);
     }
 
     /**
-     * STAGE 5: KOPERASI KLIK SAAT FISIK PUPUK SUDAH BONGKAR DI GUDANG KDMP
-     * 🟢 Ditingkatkan agar penambahan stok menggunakan actual_received_bags
+     * STAGE 5: KOPERASI KLIK SAAT FISIK PUPUK SUDAH BONGKAR DI GUDANG KOPERASI (SELESAI)
      */
     public function completeOrder($id): JsonResponse
     {
-        $order = ProcurementOrder::with('items')->findOrFail($id);
+        $order = ProcurementOrder::with(['items', 'cooperative'])->findOrFail($id);
 
         if ($order->status_logistik !== 'SIAP_TEBUS_LINI_4') {
             return response()->json([
@@ -575,11 +697,10 @@ class ProcurementOrderController extends Controller
         DB::beginTransaction();
         try {
             foreach ($order->items as $item) {
-                // Gunakan actual_received_bags jika diisi oleh Dinas, jika tidak fallback ke final_bags_ordered
                 $receivedBags = $item->actual_received_bags ?? $item->final_bags_ordered;
                 $receivedWeightKg = $receivedBags * $item->packaging_size_kg;
 
-                // 1. Tambahkan stok ke tabel fertilizers berdasarkan jumlah fisik riil
+                // 1. Tambahkan stok ke tabel fertilizers
                 DB::table('fertilizers')
                     ->where('id', $item->fertilizer_id)
                     ->increment('current_stock_kg', $receivedWeightKg);
@@ -600,6 +721,11 @@ class ProcurementOrderController extends Controller
             ]);
 
             DB::commit();
+
+            // 📧 3. TIBA DI KOPERASI / SELESAI: Kirim Notifikasi ke Dinas Pertanian & Kemenko
+            $this->sendEmailToDinasVerifiedNotice($order);
+            $this->sendEmailToKemenkoVerifiedNotice($order);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Selesai! Stok pupuk resmi diterima fisik & ditambahkan ke sistem gudang Koperasi.'
@@ -610,6 +736,46 @@ class ProcurementOrderController extends Controller
                 'success' => false,
                 'message' => 'Gagal memproses penerimaan stok: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+
+
+    /**
+     * Helper Method: Kirim Update Status/Logistik ke Dinas Pertanian
+     */
+    private function sendEmailToDinasVerifiedNotice(ProcurementOrder $order): void
+    {
+        try {
+            if ($order->cooperative && $order->cooperative->city_koor) {
+                $dinasUser = User::role('dinas-pertanian')
+                    ->whereRaw('LOWER(city_code) = ?', [strtolower($order->cooperative->city_koor)])
+                    ->first();
+
+                if ($dinasUser && $dinasUser->email) {
+                    Mail::to($dinasUser->email)->send(new ProcurementVerifiedMail($order));
+                    \Log::info("Email update logistik berhasil dikirim ke Dinas: {$dinasUser->email}");
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error("Gagal kirim update logistik ke Dinas: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Helper Method: Kirim Update Status/Logistik ke Kemenko
+     */
+    private function sendEmailToKemenkoVerifiedNotice(ProcurementOrder $order): void
+    {
+        try {
+            $kemenkoEmails = User::role('kemenko-pangan')->pluck('email')->filter();
+
+            if ($kemenkoEmails->isNotEmpty()) {
+                Mail::to($kemenkoEmails)->send(new ProcurementVerifiedMail($order));
+                \Log::info("Email update logistik berhasil dikirim ke Kemenko: " . implode(', ', $kemenkoEmails->toArray()));
+            }
+        } catch (\Exception $e) {
+            \Log::error("Gagal kirim update logistik ke Kemenko: " . $e->getMessage());
         }
     }
 

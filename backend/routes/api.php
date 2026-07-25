@@ -58,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('cooperative')->group(function () {
             
             // 1. Profil & Dashboard
+            Route::get('/cooperative1/me', [CooperativeController::class, 'getMyCooperative']);
             Route::put('/profile/complete', [CooperativeController::class, 'updateProfile']);
             Route::get('/dashboard', [CooperativeDashboardController::class, 'getKoperasiData']);
             
