@@ -1,4 +1,16 @@
-# COOP-FLOW — Platform Manajemen & Prediksi Kebutuhan Pupuk KDKMP
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" valign="middle">
+        <img src="logo.png" alt="COOP-FLOW Logo" width="90" />
+      </td>
+      <td align="center" valign="middle">
+        <h1>COOP-FLOW — Platform Manajemen & Prediksi Kebutuhan Pupuk KDKMP</h1>
+      </td>
+    </tr>
+  </table>
+</div>
+<br>
 
 **COOP-FLOW** adalah sistem terintegrasi untuk mengoptimalkan distribusi pupuk dan prediksi stok pengadaan bagi koperasi desa merah putih. Sistem ini memanfaatkan arsitektur microservices berbasis Docker yang menghubungkan **Next.js** (Frontend), **Laravel** (Backend REST API), **FastAPI** (ML Engine), serta **PostGIS** (Database Spatial).
 
@@ -83,7 +95,7 @@ EOF #jangan lupa di hapus baris ini
 
 ```
 
-# 2. Setup Environment Frontend Next.js. buat file manual seperti biasa dengan nama .env.local
+### 2. Setup Environment Frontend Next.js. buat file manual seperti biasa dengan nama .env.local
 ```bash
 cat << 'EOF' > frontend/.env.local #jangan lupa di hapus baris ini
 NEXT_PUBLIC_API_URL=[http://127.0.0.1:8000](http://127.0.0.1:8000)
@@ -102,7 +114,7 @@ docker compose up -d --build
 
 > *Tunggu beberapa saat hingga seluruh container ter-build dan berstatus `running`.*
 
-### 3. Install Dependency Laravel (Composer)
+### 4. Install Dependency Laravel (Composer)
 
 Jalankan pendaftaran/install ulang dependency PHP di dalam container backend:
 
@@ -111,19 +123,34 @@ docker compose exec backend composer install
 
 ```
 
-### 4. Generate Application Key (Laravel)
+### 5. Install Dependency ML Engine (Python)
+
+Jalankan instalasi dependency Python di dalam container ML Engine:
+
+```bash
+docker compose exec ml-engine pip install -r requirements.txt
+
+```
+
+### 6. Generate Application Key (Laravel)
 
 ```bash
 docker compose exec backend php artisan key:generate
 
 ```
 
-### 5. Jalankan Migrasi Database & Seeder Data
+### 7. Jalankan Migrasi Database & Seeder Data
 
 Jalankan migrasi PostGIS beserta seeder bawaan (`RoleAndUserSeeder`, `FarmerSeeder`, dll):
 
 ```bash
 docker compose exec backend php artisan migrate:fresh --seed
+
+```
+### 8. Jalankan Inisialisasi Data Wilayah (Indonesia Seeder)
+
+```bash
+docker compose exec backend php artisan laravolt:indonesia:seed
 
 ```
 
@@ -136,9 +163,9 @@ Setiap akun pengguna berikut disiapkan dengan **Password:** `password123`
 | Role | Nama User | Email | Keterangan |
 | --- | --- | --- | --- |
 | **Admin Lapangan** | Budi Setiawan | `admin.lapangan@coopflow.id` | Terikat pada KUD Makmur Sejahtera |
-| **Petugas Koperasi** | Siti Aminah | `koperasi@coopflow.id` | Terikat pada KUD Makmur Sejahtera |
-| **Dinas Pertanian** | Ir. Ahmad Subarjo | `dinas.pertanian@go.id` | Wilayah Sleman, DIY |
-| **Kemenko Pangan** | Dr. Hendra Wijaya | `kemenko.pangan@go.id` | Tingkat Pusat |
+| **Petugas Koperasi** | Siti Aminah | `riznalprakon@gmail.com` | Terikat pada KUD Makmur Sejahtera |
+| **Dinas Pertanian** | Ir. Ahmad Subarjo | `putrapongkowulu@gmail.com` | Wilayah Sleman, DIY |
+| **Kemenko Pangan** | Dr. Hendra Wijaya | `febipurti855@gmail.com` | Tingkat Pusat |
 | **Petani (Tumpang Sari)** | Bapak Fikri | `fikri@email.com` | Memiliki 2 Lahan (Padi, Jagung, Singkong) |
 | **Petani (Hortikultura)** | Ibu Febiyanti | `febiyanti@email.com` | Memiliki 2 Lahan (Bawang & Cabai Rawit) |
 | **Petani (Padi)** | Bapak Ari | `ari@email.com` | Kelompok Tani Makmur Sentosa |
@@ -202,10 +229,12 @@ docker compose logs -f backend
 # Melihat log Frontend saja
 docker compose logs -f frontend
 
----
 
+```
 ## Dokumentasi API Swagger
+```bash
+(https://documenter.getpostman.com/view/32171174/2sBY4Qsemg)
 
-
+```
 
 

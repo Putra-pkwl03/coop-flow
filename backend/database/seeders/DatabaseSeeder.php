@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             RoleAndUserSeeder::class,
             CooperativeSeeder::class,
             CooperativeRegistrationSeeder::class,
+            UserCooperativeSeeder::class,
             FarmerGroupSeeder::class,
             FarmerSeeder::class,
             InventorySeeder::class,

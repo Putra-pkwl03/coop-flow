@@ -125,10 +125,6 @@ export default function ValidasiPengadaanPage() {
     setFilteredOrders(result);
   }, [search, orders]);
 
-  if (loading) {
-    return <ValidasiPengadaanSkeleton />;
-  }
-
   return (
     <div className="space-y-6 pb-8">
       {/* Breadcrumb & Title */}
@@ -141,7 +137,6 @@ export default function ValidasiPengadaanPage() {
           <HiArrowLeft className="text-xl" />
         </button>
 
-        {/* Pembungkus teks judul */}
         <div>
           <div className="text-xs text-zinc-400 font-semibold mb-1 flex items-center space-x-1">
             <span>Dashboard</span>
@@ -158,7 +153,7 @@ export default function ValidasiPengadaanPage() {
       </div>
 
       {/* Komponen Statistik Grid */}
-      <ValidasiStats stats={stats} />
+      <ValidasiStats stats={stats} loading={loading} />
 
       {/* Toolbar Pencarian & Filter */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
@@ -179,7 +174,7 @@ export default function ValidasiPengadaanPage() {
       </div>
 
       {/* Komponen Tabel Utama */}
-      <ValidasiTable orders={filteredOrders} />
+      <ValidasiTable orders={filteredOrders} loading={loading} />
     </div>
   );
 }

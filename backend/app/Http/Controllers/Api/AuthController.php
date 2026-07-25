@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -166,6 +167,67 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Berhasil logout, token telah dihapus.'
+        ]);
+    }
+
+    /**
+     * API Update Profil Pengguna yang Sedang Login (Generik untuk Semua Role)
+     *
+     * Hanya mengizinkan update: name, phone, email, password.
+     * Field wilayah (province_code, city_code, district_code, village_code)
+     * SENGAJA tidak disentuh di sini karena wilayah kerja/domisili bersifat
+     * fixed dari admin dan tidak boleh diubah mandiri oleh user.
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        // 1. Validasi Input Data (partial update, pakai 'sometimes')
+        $validator = Validator::make($request->all(), [
+            'name' => 'sometimes|required|string|max:255',
+            'phone' => [
+                'sometimes',
+                'required',
+                'string',
+                Rule::unique('users', 'phone')->ignore($user->id),
+            ],
+            'email' => [
+                'sometimes',
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'password' => 'sometimes|required|string|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $validated = $validator->validated();
+
+        // 2. Isi hanya field yang memang dikirim
+        if (array_key_exists('name', $validated)) {
+            $user->name = $validated['name'];
+        }
+        if (array_key_exists('phone', $validated)) {
+            $user->phone = $validated['phone'];
+        }
+        if (array_key_exists('email', $validated)) {
+            $user->email = $validated['email'];
+        }
+        if (array_key_exists('password', $validated)) {
+            $user->password = Hash::make($validated['password']);
+        }
+
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui!',
+            'data' => $user->fresh()->load(['roles', 'farmer', 'cooperative']),
         ]);
     }
 }

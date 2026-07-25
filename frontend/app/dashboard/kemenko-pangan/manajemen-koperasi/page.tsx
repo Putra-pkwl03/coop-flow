@@ -315,6 +315,7 @@ export default function CooperativeMasterPage() {
         active={activeCoops}
         inactive={inactiveCoops}
         newThisMonth={newThisMonth}
+        loading={loading}
       />
 
       <FilterBar

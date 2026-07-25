@@ -33,8 +33,8 @@ export default function InventorySummary({ summary }: InventorySummaryProps) {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
       
       {/* Card 1: Total Jenis Pupuk */}
-      <div className="bg-white py-4 px-6 rounded-lg border border-zinc-100 shadow-sm flex items-center gap-5 min-h-[140px]">
-        <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+      <div className="bg-white py-4 px-6 rounded-lg border border-zinc-100 shadow-sm flex items-center gap-5 min-h-35">
+        <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0">
           <FaCube className="text-2xl" />
         </div>
         <div className="flex flex-col justify-center space-y-4 w-full">
@@ -47,8 +47,8 @@ export default function InventorySummary({ summary }: InventorySummaryProps) {
       </div>
 
       {/* Card 2: Total Stok */}
-      <div className="bg-white py-4 px-6 rounded-lg border border-zinc-100 shadow-sm flex items-center gap-5 min-h-[140px]">
-        <div className="w-14 h-14 bg-fuchsia-50 text-fuchsia-600 rounded-full flex items-center justify-center flex-shrink-0">
+      <div className="bg-white py-4 px-6 rounded-lg border border-zinc-100 shadow-sm flex items-center gap-5 min-h-35">
+        <div className="w-14 h-14 bg-fuchsia-50 text-fuchsia-600 rounded-full flex items-center justify-center shrink-0">
           <FaWarehouse className="text-2xl" />
         </div>
         <div className="flex flex-col justify-center space-y-4 w-full overflow-hidden">
@@ -61,8 +61,8 @@ export default function InventorySummary({ summary }: InventorySummaryProps) {
       </div>
 
       {/* Card 3: Nilai Persediaan */}
-      <div className="bg-white py-4 px-6 rounded-lg border border-zinc-100 shadow-sm flex items-center gap-5 min-h-[140px]">
-        <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+      <div className="bg-white py-4 px-6 rounded-lg border border-zinc-100 shadow-sm flex items-center gap-5 min-h-35">
+        <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
           <FaDollarSign className="text-2xl" />
         </div>
         <div className="flex flex-col justify-center space-y-4 w-full overflow-hidden">
@@ -75,8 +75,8 @@ export default function InventorySummary({ summary }: InventorySummaryProps) {
       </div>
 
       {/* Card 4: Stok Menipis */}
-      <div className="bg-white py-4 px-6 rounded-lg border border-zinc-100 shadow-sm flex items-center gap-5 min-h-[140px]">
-        <div className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 ${stokMenipis > 0 ? 'bg-amber-50 text-amber-500' : 'bg-zinc-50 text-zinc-400'}`}>
+      <div className="bg-white py-4 px-6 rounded-lg border border-zinc-100 shadow-sm flex items-center gap-5 min-h-35">
+        <div className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${stokMenipis > 0 ? 'bg-amber-50 text-amber-500' : 'bg-zinc-50 text-zinc-400'}`}>
           <FaMinusCircle className="text-2xl" />
         </div>
         <div className="flex flex-col justify-center space-y-4 w-full">
@@ -91,8 +91,8 @@ export default function InventorySummary({ summary }: InventorySummaryProps) {
       </div>
 
       {/* Card 5: Stok Habis */}
-      <div className="bg-white py-4 px-6 rounded-lg border border-zinc-100 shadow-sm flex items-center gap-5 min-h-[140px]">
-        <div className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 ${stokHabis > 0 ? 'bg-red-50 text-red-500' : 'bg-zinc-50 text-zinc-400'}`}>
+      <div className="bg-white py-4 px-6 rounded-lg border border-zinc-100 shadow-sm flex items-center gap-5 min-h-35">
+        <div className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${stokHabis > 0 ? 'bg-red-50 text-red-500' : 'bg-zinc-50 text-zinc-400'}`}>
           <FaTimesCircle className="text-2xl" />
         </div>
         <div className="flex flex-col justify-center space-y-4 w-full">

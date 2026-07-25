@@ -16,7 +16,13 @@ interface StatsData {
   ditolak: number;
 }
 
-export default function ValidasiStats({ stats }: { stats: StatsData }) {
+export default function ValidasiStats({
+  stats,
+  loading,
+}: {
+  stats: StatsData;
+  loading?: boolean;
+}) {
   const cards = [
     {
       title: "Total Pengajuan",
@@ -64,15 +70,25 @@ export default function ValidasiStats({ stats }: { stats: StatsData }) {
               <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
                 {card.title}
               </p>
-              <p className="text-3xl font-black text-zinc-900 mt-2">
-                {card.value}{" "}
-                <span className="text-xs font-normal text-zinc-500">
-                  {card.unit}
-                </span>
-              </p>
+              {loading ? (
+                <div className="h-8 w-20 bg-zinc-200 rounded animate-pulse mt-2" />
+              ) : (
+                <p className="text-3xl font-black text-zinc-900 mt-2">
+                  {card.value}{" "}
+                  <span className="text-xs font-normal text-zinc-500">
+                    {card.unit}
+                  </span>
+                </p>
+              )}
             </div>
-            <div className={`p-3 rounded-2xl ${card.bg} ${card.color}`}>
-              <card.icon className="text-2xl" />
+            <div
+              className={`p-3 rounded-2xl ${card.bg} ${card.color} ${loading ? "animate-pulse" : ""}`}
+            >
+              {loading ? (
+                <div className="w-6 h-6 bg-current opacity-30 rounded" />
+              ) : (
+                <card.icon className="text-2xl" />
+              )}
             </div>
           </div>
         </div>

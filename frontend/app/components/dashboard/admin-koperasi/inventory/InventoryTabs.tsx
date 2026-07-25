@@ -13,7 +13,7 @@ export default function InventoryTabs() {
     <div className="flex border-b border-zinc-200 gap-6 text-sm font-medium">
       <button
         onClick={() => router.push("/dashboard/admin-koprasi/stok-inventaris")}
-        className={`pb-3 px-1 border-b-2 transition-all font-semibold ${
+        className={`pb-3 px-1 border-b-2 transition-all font-semibold cursor-pointer ${
           !isRiwayatActive
             ? "border-emerald-600 text-emerald-600 font-bold"
             : "border-transparent text-zinc-400 hover:text-zinc-600"
@@ -25,7 +25,7 @@ export default function InventoryTabs() {
         onClick={() =>
           router.push("/dashboard/admin-koprasi/stok-inventaris/riwayat")
         }
-        className={`pb-3 px-1 border-b-2 transition-all font-semibold ${
+        className={`pb-3 px-1 border-b-2 transition-all font-semibold cursor-pointer ${
           isRiwayatActive
             ? "border-emerald-600 text-emerald-600 font-bold"
             : "border-transparent text-zinc-400 hover:text-zinc-600"

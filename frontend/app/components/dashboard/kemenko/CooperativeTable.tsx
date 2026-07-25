@@ -58,14 +58,31 @@ export default function CooperativeTable({
           </thead>
           <tbody className="divide-y divide-zinc-100 text-sm text-zinc-700">
             {loading ? (
-              <tr>
-                <td
-                  colSpan={7}
-                  className="text-center py-12 text-zinc-400 font-medium"
-                >
-                  Memuat data master koperasi...
-                </td>
-              </tr>
+              Array.from({ length: 6 }).map((_, idx) => (
+                <tr key={`skeleton-${idx}`} className="animate-pulse">
+                  <td className="py-3.5 px-6 text-center">
+                    <div className="h-3 w-4 bg-zinc-200 rounded mx-auto" />
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="h-3 w-32 bg-zinc-200 rounded" />
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="h-3 w-20 bg-zinc-200 rounded" />
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="h-3 w-24 bg-zinc-200 rounded" />
+                  </td>
+                  <td className="py-3.5 px-4 text-center">
+                    <div className="h-5 w-16 bg-zinc-200 rounded-md mx-auto" />
+                  </td>
+                  <td className="py-3.5 px-4 text-center">
+                    <div className="h-3 w-20 bg-zinc-200 rounded mx-auto" />
+                  </td>
+                  <td className="py-3.5 px-6">
+                    <div className="h-7 w-28 bg-zinc-200 rounded-lg mx-auto" />
+                  </td>
+                </tr>
+              ))
             ) : data.length === 0 ? (
               <tr>
                 <td
