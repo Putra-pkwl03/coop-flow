@@ -13,6 +13,9 @@ interface NavCardProps {
   href: string;
   bgColor?: string;
   iconColor?: string;
+  iconHoverBg?: string;
+  titleHoverColor?: string;
+  ctaColor?: string;
 }
 
 function NavCard({
@@ -20,26 +23,33 @@ function NavCard({
   title,
   ctaText,
   href,
-  bgColor = "bg-emerald-100",
+  bgColor = "bg-emerald-100/70",
   iconColor = "text-emerald-700",
+  iconHoverBg = "group-hover:bg-emerald-600",
+  titleHoverColor = "group-hover:text-emerald-700",
+  ctaColor = "text-emerald-600",
 }: NavCardProps) {
   return (
-    <div className="bg-emerald-50/40 rounded-2xl p-5 flex items-center gap-4 border border-emerald-100/60 shadow-xs">
+    <Link
+      href={href}
+      className="bg-white p-5 rounded-2xl border border-zinc-100 shadow-sm flex items-center gap-4 group hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+    >
       <div
-        className={`h-16 w-16 rounded-2xl ${bgColor} ${iconColor} flex items-center justify-center text-3xl shrink-0`}
+        className={`h-16 w-16 rounded-2xl ${bgColor} ${iconColor} flex items-center justify-center text-3xl shrink-0 group-hover:text-white transition-colors duration-200 ${iconHoverBg}`}
       >
         {icon}
       </div>
       <div>
-        <h3 className="text-lg font-bold text-slate-800 mb-1">{title}</h3>
-        <Link
-          href={href}
-          className="text-sm font-bold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1"
+        <h3
+          className={`text-lg font-bold text-slate-800 mb-1 transition-colors ${titleHoverColor}`}
         >
-          {ctaText} <span>&rarr;</span>
-        </Link>
+          {title}
+        </h3>
+        <span className={`text-sm font-bold ${ctaColor} group-hover:underline`}>
+          {ctaText}
+        </span>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -53,6 +63,9 @@ export default function NavCardsSection() {
         href="/dashboard/kemenko-pangan/manajemen-koperasi"
         bgColor="bg-emerald-100/70"
         iconColor="text-emerald-700"
+        iconHoverBg="group-hover:bg-emerald-600"
+        titleHoverColor="group-hover:text-emerald-700"
+        ctaColor="text-emerald-600"
       />
       <NavCard
         icon={<HiTruck />}
@@ -61,6 +74,9 @@ export default function NavCardsSection() {
         href="/dashboard/kemenko-pangan/validasi-pengadaan"
         bgColor="bg-blue-100/70"
         iconColor="text-blue-700"
+        iconHoverBg="group-hover:bg-blue-600"
+        titleHoverColor="group-hover:text-blue-700"
+        ctaColor="text-blue-600"
       />
       <NavCard
         icon={<HiDocumentChartBar />}
@@ -69,6 +85,9 @@ export default function NavCardsSection() {
         href="/dashboard/kemenko-pangan/laporan"
         bgColor="bg-purple-100/70"
         iconColor="text-purple-700"
+        iconHoverBg="group-hover:bg-purple-600"
+        titleHoverColor="group-hover:text-purple-700"
+        ctaColor="text-purple-600"
       />
     </div>
   );
