@@ -1,16 +1,16 @@
 services:
   # 1. Database Service
-  database:
-    image: postgis/postgis:15-3.3
-    container_name: coopflow_db
-    environment:
-      POSTGRES_DB: coopflow_db
-      POSTGRES_USER: coopflow_user
-      POSTGRES_PASSWORD: secretpassword
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+  # database:
+  #   image: postgis/postgis:15-3.3
+  #   container_name: coopflow_db
+  #   environment:
+  #     POSTGRES_DB: coopflow_db
+  #     POSTGRES_USER: coopflow_user
+  #     POSTGRES_PASSWORD: secretpassword
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
 
   # 2. Backend Service
   backend:
@@ -20,8 +20,8 @@ services:
     container_name: coopflow_backend
     volumes:
       - ./backend:/var/www
-    depends_on:
-      - database
+    # depends_on:
+    #   - database
 
   # 3. Web Server Service
   webserver:
@@ -67,23 +67,23 @@ services:
   #     command: tail -f /dev/null 
 
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: coopflow_frontend
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-      - PORT=3000
-      - HOSTNAME=0.0.0.0  
-      - WATCHPACK_POLLING=true 
-      - CHOKIDAR_USEPOLLING=true
-    command: npm run dev  
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: coopflow_frontend
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+  #   environment:
+  #     - NODE_ENV=development
+  #     - PORT=3000
+  #     - HOSTNAME=0.0.0.0  
+  #     - WATCHPACK_POLLING=true 
+  #     - CHOKIDAR_USEPOLLING=true
+  #   command: npm run dev  
 
-volumes:
-  pgdata:
+# volumes:
+#   pgdata:

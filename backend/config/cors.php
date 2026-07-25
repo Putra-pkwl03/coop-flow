@@ -19,7 +19,11 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3000'],
+    'allowed_origins' => array_filter([
+        env('FRONTEND_URL', 'https://coopflow.up.railway.app'),
+        'http://localhost:3000',
+        'https://coopflow.up.railway.app',
+    ]),
 
     'allowed_origins_patterns' => [],
 
