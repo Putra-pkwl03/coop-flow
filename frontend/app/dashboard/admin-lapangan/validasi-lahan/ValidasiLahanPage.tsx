@@ -331,7 +331,6 @@ export default function ValidasiLahanPage() {
     }
   };
 
-  // 🛠️ FUNGSI PENYIMPANAN OFFLINE DENGAN LOGIKA PENANGANAN ID LOKAL/ONLINE
 const saveToOfflineQueue = async (payload: any) => {
   try {
     if (!selectedFarmer || !selectedLand) return;
@@ -349,49 +348,46 @@ const saveToOfflineQueue = async (payload: any) => {
 
     setFarmers(updatedFarmers);
 
-    // 2. Simpan atau Update ke IndexedDB (Dexie) Lokal
+    // 2. Simpan ke IndexedDB (Dexie)
     if (db?.farmers) {
       const targetFarmer = updatedFarmers.find(f => f.id === selectedFarmer.id);
       if (targetFarmer) {
-        // Menggunakan put spesifik objek agar tidak merusak record lain
         await db.farmers.put(targetFarmer as any);
       }
     }
 
     // 3. Masukkan ke Antrean Sinkronisasi (Sync Queue)
     if (db?.syncQueue) {
-      // Cek apakah ID bersifat sementara (misal dibuat secara offline)
       const isTemporaryId = typeof selectedFarmer.id === 'string' && selectedFarmer.id.startsWith('temp_');
 
       await db.syncQueue.add({
         table_name: 'farmers',
         endpoint: `/farmers/${selectedFarmer.id}`,
-        method: isTemporaryId ? 'POST' : 'PUT', // Gunakan POST jika baru, PUT jika update
+        method: isTemporaryId ? 'POST' : 'PUT',
         action: isTemporaryId ? 'CREATE' : 'UPDATE',
         payload: payload,
         created_at: new Date().toISOString()
       });
     }
 
-    // 4. Notifikasi Toast ke Admin Lapangan
+    // 4. Toast Notification
     Swal.fire({
       toast: true,
       position: 'top-end',
       icon: 'warning',
       title: '📱 Data Tersimpan di HP (Offline)',
-      text: `Validasi lahan "${selectedLand.land_name}" masuk antrean offline. Akan tersinkronisasi otomatis saat mendapat sinyal!`,
+      text: `Validasi lahan "${selectedLand.land_name}" masuk antrean offline.`,
       showConfirmButton: false,
-      timer: 4000
+      timer: 3000
     });
 
+    // 🌟 PERBAIKAN DI SINI:
+    // Otomatis pindahkan tab ke 'sudah' agar lahan yang baru divalidasi langsung muncul!
+    setActiveTab('sudah');
     resetWorkspace();
+
   } catch (err) {
     console.error("Gagal menyimpan data offline:", err);
-    Swal.fire({
-      icon: 'error',
-      title: 'Gagal Menyimpan Local',
-      text: 'Terjadi kesalahan saat menyimpan data ke penyimpanan HP.'
-    });
   }
 };
  
