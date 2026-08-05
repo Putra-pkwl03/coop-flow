@@ -12,9 +12,9 @@ export default function MenuGrid() {
     { title: 'Managemen Petani', desc: 'Kelola data dan profil petani anggota', icon: FaUsers, color: 'bg-blue-50 text-blue-600', href: '/dashboard/admin-lapangan/data-petani' },
     { title: 'Validasi Lahan', desc: 'Verifikasi dan petakan lahan petani', icon: FaMapMarkerAlt, color: 'bg-red-50 text-red-600', href: '/dashboard/admin-lapangan/validasi-lahan' },
     { title: 'Data Tanaman', desc: 'Kelola jenis komoditas dan varietas', icon: FaSeedling, color: 'bg-green-50 text-green-600', href: '/dashboard/admin-lapangan/data-tanaman' },
-    { title: 'Sinkronisasi Offline', desc: 'Kirim data yang tersimpan secara offline', icon: FaCloudDownloadAlt, color: 'bg-indigo-50 text-indigo-600', href: '#' },
-    { title: 'Riwayat Aktivitas', desc: 'Lihat semua aktivitas lapangan', icon: FaClipboardList, color: 'bg-cyan-50 text-cyan-600', href: '#' },
-    { title: 'Notifikasi', desc: 'Informasi penting dan pengingat tugas', icon: FaBell, color: 'bg-yellow-50 text-yellow-600', href: '#' },
+    { title: 'Sinkronisasi Offline', desc: 'Kirim data yang tersimpan secara offline', icon: FaCloudDownloadAlt, color: 'bg-indigo-50 text-indigo-600', href: '/dashboard/admin-lapangan/sinkronisasi' },
+    { title: 'Riwayat Aktivitas', desc: 'Lihat semua aktivitas lapangan', icon: FaClipboardList, color: 'bg-cyan-50 text-cyan-600', href: '/dashboard/admin-lapangan/riwayat' },
+    { title: 'Notifikasi', desc: 'Informasi penting dan pengingat tugas', icon: FaBell, color: 'bg-yellow-50 text-yellow-600', href: '/dashboard/admin-lapangan/notifikasi' },
   ];
 
   return (
@@ -26,6 +26,7 @@ export default function MenuGrid() {
           <Link 
             href={item.href} 
             key={i} 
+            prefetch={true} // 🌟 SANGAT PENTING: Paksa Next.js & PWA prefetch halaman ini saat online
             className="bg-white p-5 pb-8 rounded-2xl border border-zinc-100 shadow-sm flex flex-col items-center text-center hover:shadow-md hover:border-emerald-200 transition group cursor-pointer relative overflow-hidden"
           >
             {/* Animasi warna dari sudut kiri atas */}
@@ -46,7 +47,7 @@ export default function MenuGrid() {
               </p>
             </div>
 
-            {/* KORREKSI: Ikon Panah dipaksa absolute di Kanan Bawah tanpa mengganggu layout text */}
+            {/* Ikon Panah */}
             <div className="absolute bottom-3 right-4 text-[10px] text-zinc-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition duration-200 z-10">
               <FaChevronRight />
             </div>

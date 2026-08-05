@@ -66,7 +66,6 @@
 
 // export default withPWA(nextConfig);
 
-
 import withPWAInit from 'next-pwa';
 
 const withPWA = withPWAInit({
@@ -74,7 +73,6 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
-  // swMinify: false,
   
   // Halaman fallback jika pengguna offline & halaman belum ada di cache
   fallbacks: {
@@ -84,18 +82,33 @@ const withPWA = withPWAInit({
   // Konfigurasi Workbox Runtime Caching
   runtimeCaching: [
     {
+      // 🌟 1. Cache Dokumen & Navigasi dengan StaleWhileRevalidate
+      // Jika ada cache, tampilkan LANGSUNG dari cache (sangat cepat & aman saat offline),
+      // sambil memperbarui cache di background jika sedang online.
       urlPattern: ({ request }) => request.mode === 'navigate',
-      handler: 'NetworkFirst',
+      handler: 'StaleWhileRevalidate',
       options: {
         cacheName: 'pages-cache',
         expiration: {
           maxEntries: 64,
           maxAgeSeconds: 24 * 60 * 60 * 30, // 30 Hari
         },
-        networkTimeoutSeconds: 3,
       },
     },
     {
+      // 🌟 2. Cache Data RSC / App Router Next.js Internal
+      urlPattern: /\/_next\/data\/.*/i,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'next-data-cache',
+        expiration: {
+          maxEntries: 64,
+          maxAgeSeconds: 24 * 60 * 60 * 30,
+        },
+      },
+    },
+    {
+      // 🌟 3. Cache Aset Statis Next.js (JS, CSS)
       urlPattern: /^https?:\/\/.*\/_next\/static\/.*/i,
       handler: 'CacheFirst',
       options: {
@@ -107,6 +120,7 @@ const withPWA = withPWAInit({
       },
     },
     {
+      // 🌟 4. Cache Gambar & Media
       urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
       handler: 'StaleWhileRevalidate',
       options: {
