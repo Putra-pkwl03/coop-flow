@@ -8,18 +8,20 @@ import {
 } from "react-icons/fa";
 import ProcurementModal from "./ProcurementModal"; 
 
-// Konfigurasi reusable reusable untuk Toast SweetAlert2 kanan atas
-const Toast = Swal.mixin({
-  toast: true,
-  position: "top-end",
-  showConfirmButton: false,
-  timer: 4000,
-  timerProgressBar: true,
-  didOpen: (toast) => {
-    toast.onmouseenter = Swal.stopTimer;
-    toast.onmouseleave = Swal.resumeTimer;
-  }
-});
+// ✅ AMAN SAAT BUILD: Menggunakan fungsi helper agar tidak dieksekusi saat prerender di Node.js
+const getToast = () => {
+  return Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 4000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
+};
 
 interface AiProcurementPanelProps {
   aiData: {
@@ -69,7 +71,7 @@ export default function AiProcurementPanel({ aiData }: AiProcurementPanelProps) 
     setIsModalOpen(false);
     
     // Tampilkan SweetAlert2 Toast Kanan Atas
-    Toast.fire({
+    getToast().fire({
       icon: "success",
       title: "Berhasil!",
       text: `PO Nomor ${responseData?.po_number || ""} sukses diajukan ke Dinas Pertanian.`

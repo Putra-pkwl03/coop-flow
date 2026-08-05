@@ -48,24 +48,21 @@ services:
     environment:
       - ENV=development
       
-  # frontend:
-  #     build:
-  #       context: ./frontend
-  #       dockerfile: Dockerfile
-  #     container_name: coopflow_frontend
-  #     ports:
-  #       - "3000:3000"
-  #     volumes:
-  #       - ./frontend:/app
-  #       - /app/node_modules
-  #     environment:
-  #       - NODE_ENV=development
-  #       - PORT=3000
-  #       - HOSTNAME=0.0.0.0  
-  #       - WATCHPACK_POLLING=true 
-  #       - CHOKIDAR_USEPOLLING=true
-  #     command: tail -f /dev/null 
-
+frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: coopflow_frontend
+    ports:
+      - "3000:3000"
+    # volumes:
+    #   - ./frontend:/app
+    #   - /app/node_modules
+    environment:
+      - NODE_ENV=production        
+      - PORT=3000
+      - HOSTNAME=0.0.0.0  
+    command: node server.js        
 
   # frontend:
   #   build:
@@ -79,11 +76,12 @@ services:
   #     - /app/node_modules
   #   environment:
   #     - NODE_ENV=development
+  #     - ENABLE_PWA_DEV=${ENABLE_PWA_DEV:-false}
   #     - PORT=3000
   #     - HOSTNAME=0.0.0.0  
   #     - WATCHPACK_POLLING=true 
   #     - CHOKIDAR_USEPOLLING=true
   #   command: npm run dev  
 
-# volumes:
-#   pgdata:
+volumes:
+  pgdata:

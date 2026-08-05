@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,18 +12,21 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Ganti metadata bawaan dengan konfigurasi PWA COOP-FLOW
 export const metadata: Metadata = {
   title: "COOP-FLOW",
   description: "Sistem Manajemen Lapangan Koperasi COOP-FLOW",
   manifest: "/manifest.json",
-  
-
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "COOP-FLOW Mobile",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#16a34a",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -33,10 +36,16 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="id" 
+      lang="id"
+      suppressHydrationWarning={true} // 👈 1. Tambahkan di sini
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body
+        className="min-h-full flex flex-col"
+        suppressHydrationWarning={true} // 👈 2. Tambahkan di sini juga
+      >
+        {children}
+      </body>
     </html>
   );
 }

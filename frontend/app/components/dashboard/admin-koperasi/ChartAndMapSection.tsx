@@ -13,7 +13,6 @@ import {
   CartesianGrid,
 } from "recharts";
 
-// Prop `peta` sudah dihapus karena kita tidak pakai peta lagi di sini
 interface ChartSectionProps {
   trenStok: Array<{ bulan: string; stok_kg: number }>;
   trenDistribusi: Array<{ bulan: string; distribusi_kg: number }>;
@@ -45,8 +44,6 @@ export default function ChartSection({
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      {/* PETA LAMA SUDAH DIHAPUS DARI SINI */}
-
       {/* DUA KANVAS GRAFIK TREN (Area Chart Recharts) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
         {/* Grafik A: Tren Stok Pupuk */}
@@ -98,7 +95,7 @@ export default function ChartSection({
                   tickFormatter={(v) => `${v / 1000}k`}
                 />
                 <Tooltip
-                  formatter={(value: number) => [formatKg(value), "Stok"]}
+                  formatter={(value: any) => [formatKg(Number(value || 0)), "Stok"]}
                   contentStyle={{
                     background: "#1e293b",
                     color: "#fff",
@@ -160,7 +157,7 @@ export default function ChartSection({
                 />
                 <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} />
                 <Tooltip
-                  formatter={(value: number) => [formatKg(value), "Distribusi"]}
+                  formatter={(value: any) => [formatKg(Number(value || 0)), "Distribusi"]}
                   contentStyle={{
                     background: "#1e293b",
                     color: "#fff",
@@ -184,7 +181,7 @@ export default function ChartSection({
         </div>
       </div>
 
-      {/* KONDISI STOK GUDANG BULAN INI (Tetap Bar Horizontal CSS, Sesuai Kebutuhan) */}
+      {/* KONDISI STOK GUDANG BULAN INI */}
       <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm w-full">
         <h2 className="text-sm font-black text-slate-800 tracking-tight mb-1">
           Kondisi Stok Gudang (Bulan Ini)

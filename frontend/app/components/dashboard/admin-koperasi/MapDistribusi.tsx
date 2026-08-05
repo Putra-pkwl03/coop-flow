@@ -67,7 +67,7 @@ export default function MapDistribusiContent({ geoData }: MapProps) {
       : geoData.features || [];
 
     const features = items.map((item) => {
-      if (item.type === "Feature") return item;
+      if ((item as any).type === "Feature") return item;
 
       const formattedPolygon = item.polygon_coordinates.map(([lat, lng]) => [
         lng,

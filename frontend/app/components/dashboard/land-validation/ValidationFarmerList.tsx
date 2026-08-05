@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Farmer, Land } from '@/app/dashboard/admin-lapangan/validasi-lahan/page'; 
+import { Farmer, Land } from '@/app/dashboard/admin-lapangan/validasi-lahan/ValidasiLahanPage'; 
 import ValidationFilterForm from './ValidationFilterForm';
 import FarmerLandCard from './FarmerLandCard';
 

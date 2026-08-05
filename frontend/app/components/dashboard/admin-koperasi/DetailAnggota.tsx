@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import api from "../../../lib/axios";
+import { Farmer } from "@/app/types/farmer";
 
 // Memuat MapComponent secara dinamis tanpa SSR
 const MapComponent = dynamic(() => import("../MapComponent"), {
@@ -425,12 +426,12 @@ export default function DetailAnggota({
         farmer.lands.map((land: Land, index: number) => {
           const isLahanOpen = openLahanIndex === index;
 
-          const singleFarmerPayload = [
-            {
-              ...farmer,
-              lands: [land],
-            },
-          ];
+         const singleFarmerPayload = [
+          {
+            ...farmer,
+            lands: [land],
+          },
+        ] as Farmer[];
 
           const docValue = land.ownership_document || land.document_name;
           const notesValue = land.notes || land.location_address;
@@ -638,7 +639,7 @@ export default function DetailAnggota({
                       >
                         <MapComponent
                           key={`map-instance-${land.id || index}`}
-                          farmers={singleFarmerPayload}
+                          farmers={singleFarmerPayload as any}
                         />
                       </div>
 

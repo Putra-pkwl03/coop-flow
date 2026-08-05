@@ -9,18 +9,20 @@ import DinasProfileForm, {
   DinasUserData,
 } from "@/app/components/dashboard/dinas/DinasProfileForm";
 
-// Konfigurasi SweetAlert2 Toast (Pojok Kanan Atas)
-const Toast = Swal.mixin({
-  toast: true,
-  position: "top-end",
-  showConfirmButton: false,
-  timer: 3000,
-  timerProgressBar: true,
-  didOpen: (toast) => {
-    toast.addEventListener("mouseenter", Swal.stopTimer);
-    toast.addEventListener("mouseleave", Swal.resumeTimer);
-  },
-});
+// ✅ AMAN SAAT BUILD: Menggunakan fungsi helper agar tidak diinstansiasi di server Node.js
+const getToast = () => {
+  return Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
+};
 
 export default function DinasProfilePage() {
   const router = useRouter();
@@ -37,7 +39,7 @@ export default function DinasProfilePage() {
         setUser(response.data);
       }
     } catch (error: any) {
-      Toast.fire({
+      getToast().fire({
         icon: "error",
         title: error?.response?.data?.message || "Gagal mengambil data profil.",
       });
@@ -57,7 +59,7 @@ export default function DinasProfilePage() {
       const response = await api.put("/user/profile/complete", formData);
 
       if (response.data.success) {
-        Toast.fire({
+        getToast().fire({
           icon: "success",
           title: "Profil berhasil diperbarui!",
         });
@@ -66,7 +68,7 @@ export default function DinasProfilePage() {
         setUser(response.data.data);
       }
     } catch (error: any) {
-      Toast.fire({
+      getToast().fire({
         icon: "error",
         title: error?.response?.data?.message || "Gagal memperbarui profil.",
       });

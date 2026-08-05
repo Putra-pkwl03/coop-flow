@@ -10,18 +10,20 @@ import KemenkoProfileForm, {
   KemenkoProfileUpdatePayload,
 } from "@/app/components/dashboard/kemenko/KemenkoProfileForm";
 
-// Konfigurasi SweetAlert2 Toast (Pojok Kanan Atas)
-const Toast = Swal.mixin({
-  toast: true,
-  position: "top-end",
-  showConfirmButton: false,
-  timer: 3000,
-  timerProgressBar: true,
-  didOpen: (toast) => {
-    toast.addEventListener("mouseenter", Swal.stopTimer);
-    toast.addEventListener("mouseleave", Swal.resumeTimer);
-  },
-});
+// ✅ AMAN SAAT BUILD: Dibungkus ke dalam fungsi helper agar TIDAK langsung jalan di Node.js Server
+const getToast = () => {
+  return Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
+};
 
 export default function KemenkoProfilePage() {
   const router = useRouter();
@@ -38,7 +40,7 @@ export default function KemenkoProfilePage() {
         setUser(response.data);
       }
     } catch (error: any) {
-      Toast.fire({
+      getToast().fire({
         icon: "error",
         title: error?.response?.data?.message || "Gagal mengambil data profil.",
       });
@@ -51,15 +53,14 @@ export default function KemenkoProfilePage() {
     fetchUserData();
   }, []);
 
-  // 2. Submit Update Profil (endpoint & controller sama dengan role lain
-  // — AuthController@updateProfile)
+  // 2. Submit Update Profil
   const handleUpdateProfile = async (formData: KemenkoProfileUpdatePayload) => {
     try {
       setIsSubmitting(true);
       const response = await api.put("/user/profile/complete", formData);
 
       if (response.data.success) {
-        Toast.fire({
+        getToast().fire({
           icon: "success",
           title: "Profil berhasil diperbarui!",
         });
@@ -67,7 +68,7 @@ export default function KemenkoProfilePage() {
         setUser(response.data.data);
       }
     } catch (error: any) {
-      Toast.fire({
+      getToast().fire({
         icon: "error",
         title: error?.response?.data?.message || "Gagal memperbarui profil.",
       });

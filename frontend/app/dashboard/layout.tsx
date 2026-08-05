@@ -15,12 +15,27 @@ const getCookie = (name: string) => {
 };
 
 export default function AdminKoperasiLayout({ children }: { children: React.ReactNode }) {
-  const { logout } = useAuthAction();
+  const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [profile, setProfile] = useState({ adminName: "Pengurus Koperasi", roleName: "Admin Koperasi" });
 
+  // 1. Amankan panggilan hook agar tidak melempar null di level SSR/Prerender
+  let authAction: ReturnType<typeof useAuthAction> | null = null;
+  try {
+    authAction = useAuthAction();
+  } catch {
+    authAction = null;
+  }
+
+  const handleLogout = () => {
+    if (authAction?.logout) {
+      authAction.logout();
+    }
+  };
+
   useEffect(() => {
+    setMounted(true);
     const currentRole = getCookie("user_role");
     setRole(currentRole);
 
@@ -36,33 +51,17 @@ export default function AdminKoperasiLayout({ children }: { children: React.Reac
     }
 
     if (currentRole === "kemenko-pangan") {
-      setProfile({ 
-        adminName: realName || "Dr. Hendra Wijaya", 
-        roleName: "Kemenko Pangan" 
-      });
+      setProfile({ adminName: realName || "Dr. Hendra Wijaya", roleName: "Kemenko Pangan" });
     } else if (currentRole === "petugas-koperasi") {
-      setProfile({ 
-        adminName: realName || "Siti Aminah", 
-        roleName: "Petugas Koperasi" 
-      });
+      setProfile({ adminName: realName || "Siti Aminah", roleName: "Petugas Koperasi" });
     } else if (currentRole === "dinas-pertanian") {
-      setProfile({ 
-        adminName: realName || "Ir. Ahmad Subarjo", 
-        roleName: "Dinas Pertanian" 
-      });
+      setProfile({ adminName: realName || "Ir. Ahmad Subarjo", roleName: "Dinas Pertanian" });
     } else if (currentRole === "admin-lapangan") {
-      setProfile({ 
-        adminName: realName || "Budi Santoso", 
-        roleName: "Admin Lapangan" 
-      });
+      setProfile({ adminName: realName || "Budi Santoso", roleName: "Admin Lapangan" });
     } else if (currentRole === "petani") {
-      setProfile({ 
-        adminName: realName || "Slamet Riyadi", 
-        roleName: "Petani" 
-      });
+      setProfile({ adminName: realName || "Slamet Riyadi", roleName: "Petani" });
     }
 
-    // Membersihkan sisa elemen widget bawaan UserWay jika user berpindah halaman layout
     return () => {
       const userWayWidget = document.getElementById("accessibilityWidget");
       if (userWayWidget) userWayWidget.remove();
@@ -72,11 +71,16 @@ export default function AdminKoperasiLayout({ children }: { children: React.Reac
     };
   }, []);
 
-  if (!role) {
-    return <div className="min-h-screen bg-[#f8fafc]" />;
+  // 2. Mencegah mismatch/hydration error saat SSR dengan mengisolasi UI penuh di Client
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] flex flex-col justify-center items-center">
+        {/* Render placeholder sederhana tanpa merender children yang butuh client state kompleks saat prerender */}
+        <div className="w-full text-center text-slate-400 text-sm">Memuat...</div>
+      </div>
+    );
   }
 
-  // Tambahkan role "petani" di sini agar sidebar di-hide
   const hideSidebar =
     role === "admin-lapangan" ||
     role === "dinas-pertanian" ||
@@ -85,22 +89,21 @@ export default function AdminKoperasiLayout({ children }: { children: React.Reac
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc] text-zinc-800 antialiased font-sans">
-      {/* ID akun UserWay Anda telah diterapkan di bawah ini */}
       <Script
         src="https://cdn.userway.org/widget.js"
         data-account="m6NNwifJHR"
-        strategy="afterInteractive"
+        strategy="lazyOnload"
       />
 
       {!hideSidebar && (
-        <Sidebar handleLogout={logout} role={role} isOpen={isSidebarOpen} />
+        <Sidebar handleLogout={handleLogout} role={role} isOpen={isSidebarOpen} />
       )}
 
       <div className="flex-1 flex flex-col pb-12 transition-all duration-300">
         <Navbar
           adminName={profile.adminName}
           roleName={profile.roleName}
-          handleLogout={logout}
+          handleLogout={handleLogout}
           isSidebarOpen={isSidebarOpen}
           toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />

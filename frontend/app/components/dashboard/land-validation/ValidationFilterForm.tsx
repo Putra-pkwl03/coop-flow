@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { FaSearch, FaFilter, FaCloudUploadAlt } from 'react-icons/fa';
-import { Farmer } from '@/app/dashboard/admin-lapangan/validasi-lahan/page';
+import { Farmer } from '@/app/dashboard/admin-lapangan/validasi-lahan/ValidasiLahanPage';
 
 interface ValidationFilterFormProps {
   searchTerm: string;

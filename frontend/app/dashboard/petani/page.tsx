@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { FaHome, FaMapMarkedAlt, FaSeedling, FaReceipt } from 'react-icons/fa';
 import api from '@/app/lib/axios';
@@ -59,7 +59,8 @@ function DashboardSkeleton() {
   );
 }
 
-export default function PetaniDashboardPage() {
+// 1. Pindahkan logika utama ke dalam inner component
+function PetaniDashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const currentView = searchParams.get('view') || 'home';
@@ -119,7 +120,6 @@ export default function PetaniDashboardPage() {
     }
   }, [currentView]);
 
-
   useEffect(() => {
     if (currentView === 'transactions') {
       const fetchTransactions = async () => {
@@ -154,7 +154,7 @@ export default function PetaniDashboardPage() {
         </div>
       ) : (
         <>
-          {/* 4. Kondisi Rendering View berdasarkan Query Params */}
+          {/* Kondisi Rendering View berdasarkan Query Params */}
           {currentView === 'lands' ? (
             <LandsView lands={landsData} />
           ) : currentView === 'fertilizers' ? (
@@ -235,5 +235,14 @@ export default function PetaniDashboardPage() {
       </nav>
 
     </div>
+  );
+}
+
+// 2. Export Halaman Utama dengan Suspense Boundary
+export default function PetaniDashboardPage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <PetaniDashboardContent />
+    </Suspense>
   );
 }

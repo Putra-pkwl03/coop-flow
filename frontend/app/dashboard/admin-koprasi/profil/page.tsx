@@ -5,18 +5,20 @@ import Swal from "sweetalert2";
 import api from "@/app/lib/axios"; 
 import CooperativeProfileForm, { CooperativeData } from "@/app/components/dashboard/admin-koperasi/profil/CooperativeProfileForm";
 
-// Konfigurasi SweetAlert2 Toast (Pojok Kanan Atas)
-const Toast = Swal.mixin({
-  toast: true,
-  position: "top-end",
-  showConfirmButton: false,
-  timer: 3000,
-  timerProgressBar: true,
-  didOpen: (toast) => {
-    toast.addEventListener("mouseenter", Swal.stopTimer);
-    toast.addEventListener("mouseleave", Swal.resumeTimer);
-  },
-});
+// ✅ AMAN SAAT BUILD: Menggunakan fungsi helper agar tidak dieksekusi saat prerender di Node.js
+const getToast = () => {
+  return Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
+};
 
 export default function ProfilePage() {
   const [cooperative, setCooperative] = useState<CooperativeData | null>(null);
@@ -32,7 +34,7 @@ export default function ProfilePage() {
         setCooperative(response.data.data);
       }
     } catch (error: any) {
-      Toast.fire({
+      getToast().fire({
         icon: "error",
         title: error?.response?.data?.message || "Gagal mengambil data profil.",
       });
@@ -52,7 +54,7 @@ export default function ProfilePage() {
       const response = await api.put("/cooperative/profile/complete", formData);
 
       if (response.data.success) {
-        Toast.fire({
+        getToast().fire({
           icon: "success",
           title: "Profil berhasil diperbarui!",
         });
@@ -61,7 +63,7 @@ export default function ProfilePage() {
         setCooperative(response.data.data);
       }
     } catch (error: any) {
-      Toast.fire({
+      getToast().fire({
         icon: "error",
         title: error?.response?.data?.message || "Gagal memperbarui profil.",
       });

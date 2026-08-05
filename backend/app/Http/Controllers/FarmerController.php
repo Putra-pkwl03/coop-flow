@@ -674,8 +674,6 @@ class FarmerController extends Controller
     }
 
 
-
-
 /**
      * Mengambil riwayat transaksi pembelian pupuk milik petani yang sedang login.
      */

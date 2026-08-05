@@ -14,24 +14,24 @@ export function middleware(request: NextRequest) {
     'petani': '/dashboard/petani',
   };
 
-  // Ambil URL dashboard sesuai role pengguna (fallback ke login jika role tidak valid)
-  const targetDashboard = (userRole && roleRoutes[userRole]) ? roleRoutes[userRole] : '/auth/login';
+  const hasValidRole = userRole && roleRoutes[userRole];
 
   // 1. Jika pengguna mengakses root ('/') atau '/dashboard' persis
   if (pathname === '/' || pathname === '/dashboard' || pathname === '/dashboard/') {
-    if (token && userRole && roleRoutes[userRole]) {
+    if (token && hasValidRole) {
       return NextResponse.redirect(new URL(roleRoutes[userRole], request.url));
     }
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 
-  // 2. Jika pengguna SUDAH login tetapi mencoba buka halaman auth (misal: /auth/login)
-  if (token && pathname.startsWith('/auth')) {
-    if (userRole && roleRoutes[userRole]) {
+  // 2. Jika pengguna mengakses halaman auth (/auth/login, /auth/register)
+  if (pathname.startsWith('/auth')) {
+    // Hanya redirect ke dashboard JIKA token ADA dan role VALID
+    if (token && hasValidRole) {
       return NextResponse.redirect(new URL(roleRoutes[userRole], request.url));
     }
-    // Jika ada token tapi role tidak valid, arahkan ke login
-    return NextResponse.redirect(new URL('/auth/login', request.url));
+    // Jika token tidak ada / role tidak valid, IZINKAN buka halaman auth
+    return NextResponse.next(); // ✅ FIXED: Gunakan next(), BUKAN redirect('/auth/login')
   }
 
   // 3. Jika BELUM login tetapi mencoba mengakses halaman /dashboard/...
@@ -41,7 +41,7 @@ export function middleware(request: NextRequest) {
 
   // 4. Validasi Role Access (Proteksi agar user tidak bisa buka dashboard role lain)
   if (token && pathname.startsWith('/dashboard/')) {
-    if (userRole && roleRoutes[userRole]) {
+    if (hasValidRole) {
       const currentRoleFolder = pathname.split('/')[2];
       const expectedRoleFolder = roleRoutes[userRole].split('/')[2];
 
@@ -49,6 +49,7 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL(roleRoutes[userRole], request.url));
       }
     } else {
+      // Jika di dalam dashboard tapi role rusak, lempar balik ke login
       return NextResponse.redirect(new URL('/auth/login', request.url));
     }
   }
@@ -56,7 +57,6 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// WAJIB: Masukkan '/' di matcher agar halaman utama ikut diproses oleh middleware
 export const config = {
   matcher: ['/', '/dashboard/:path*', '/auth/:path*'],
 };

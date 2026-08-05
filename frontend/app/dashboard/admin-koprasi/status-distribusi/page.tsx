@@ -10,18 +10,20 @@ import DistributionBanner from "@/app/components/dashboard/admin-koperasi/procur
 import { FaSearch, FaFilter } from "react-icons/fa";
 import Swal from "sweetalert2";
 
-// Konfigurasi reusable untuk Toast SweetAlert2 kanan atas (konsisten dengan AiProcurementPanel)
-const Toast = Swal.mixin({
-  toast: true,
-  position: "top-end",
-  showConfirmButton: false,
-  timer: 4000,
-  timerProgressBar: true,
-  didOpen: (toast) => {
-    toast.onmouseenter = Swal.stopTimer;
-    toast.onmouseleave = Swal.resumeTimer;
-  },
-});
+// ✅ AMAN SAAT BUILD: Dibungkus ke dalam fungsi helper agar tidak dieksekusi di Node.js Server
+const getToast = () => {
+  return Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 4000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
+};
 
 export default function StatusDistribusiPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -78,7 +80,7 @@ export default function StatusDistribusiPage() {
       }
     } catch (error) {
       console.error("Gagal mengambil detail pengadaan:", error);
-      Toast.fire({
+      getToast().fire({
         icon: "error",
         title: "Gagal memuat detail order.",
       });
@@ -148,10 +150,10 @@ export default function StatusDistribusiPage() {
       preConfirm: () => {
         const inputBags = (
           document.getElementById("swal-input-bags") as HTMLInputElement
-        ).value;
+        )?.value;
         const inputNotes = (
           document.getElementById("swal-input-notes") as HTMLTextAreaElement
-        ).value;
+        )?.value;
 
         if (!inputBags || Number(inputBags) < 0) {
           Swal.showValidationMessage(
@@ -180,7 +182,7 @@ export default function StatusDistribusiPage() {
       );
 
       if (response.data.success) {
-        Toast.fire({
+        getToast().fire({
           icon: "success",
           title: "Penerimaan Berhasil Diverifikasi!",
           text: response.data.message || "Stok inventaris telah diperbarui.",
@@ -189,7 +191,7 @@ export default function StatusDistribusiPage() {
         fetchOrders();
       }
     } catch (err: any) {
-      Toast.fire({
+      getToast().fire({
         icon: "error",
         title: "Gagal Memproses",
         text:

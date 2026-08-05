@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FaTint, FaWind, FaMapMarkerAlt } from "react-icons/fa";
+import { FaTint, FaWind, FaMapMarkerAlt, FaCloudSun } from "react-icons/fa";
 import { getWeatherData } from "@/app/services/weatherService";
 
 interface GreetingBannerProps {
@@ -11,7 +11,7 @@ interface GreetingBannerProps {
 export default function GreetingBanner({ adminName }: GreetingBannerProps) {
   const [weather, setWeather] = useState<any>(null);
   const [loadingLocation, setLoadingLocation] = useState<boolean>(true);
-  // State untuk menyimpan teks ucapan dinamis (Default awal ke Pagi)
+  const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
   const [greeting, setGreeting] = useState<string>("Selamat Pagi");
 
   useEffect(() => {
@@ -30,20 +30,28 @@ export default function GreetingBanner({ adminName }: GreetingBannerProps) {
       }
     };
 
-    // Jalankan sekali saat mount
     updateGreeting();
 
-    // 2. Logika Integrasi Cuaca & Geolocation (Bawaan Anda)
-    const fetchWeather = (lat: number, lon: number) => {
-      getWeatherData(lat, lon).then((data) => {
+    // 2. Logika Integrasi Cuaca & Fallback Offline Storage
+    const fetchWeather = async (lat: number, lon: number) => {
+      try {
+        // Cek apakah browser benar-benar online secara jaringan
+        if (!navigator.onLine) {
+          throw new Error("Device offline");
+        }
+
+        const data = await getWeatherData(lat, lon);
         if (data) {
           setWeather(data);
+          setIsOfflineMode(false);
 
           const weatherPayload = {
             temp: data.main.temp,
             humidity: data.main.humidity,
             rain: data.rain ? data.rain["1h"] : 0,
             windSpeed: data.wind?.speed,
+            description: data.weather[0].description,
+            icon: data.weather[0].icon,
             latitude: lat,
             longitude: lon,
             locationName: data.name,
@@ -54,28 +62,54 @@ export default function GreetingBanner({ adminName }: GreetingBannerProps) {
             JSON.stringify(weatherPayload),
           );
         }
-      });
+      } catch (error) {
+        console.warn("Gagal fetch cuaca online, mencoba memuat cache lokal...", error);
+        setIsOfflineMode(true);
+
+        // Ambil data cuaca terakhir dari localStorage saat offline
+        const cachedWeather = localStorage.getItem("current_validation_weather");
+        if (cachedWeather) {
+          const parsed = JSON.parse(cachedWeather);
+          // Normalisasi format agar kompatibel dengan struktur tampilan
+          setWeather({
+            main: { temp: parsed.temp, humidity: parsed.humidity },
+            wind: { speed: parsed.windSpeed },
+            weather: [{ description: parsed.description || "Data Tersimpan", icon: parsed.icon || "01d" }],
+            name: parsed.locationName || "Lokasi Offline",
+          });
+        }
+      } finally {
+        setLoadingLocation(false);
+      }
     };
 
+    // 3. Eksekusi Geolocation dengan Fallback Aman
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setLoadingLocation(false);
           fetchWeather(latitude, longitude);
         },
         (error) => {
-          console.error(
-            "Gagal mendeteksi lokasi otomatis, menggunakan fallback:",
-            error,
-          );
-          setLoadingLocation(false);
-          fetchWeather(-7.77, 110.37);
+          console.error("Gagal mendeteksi lokasi GPS:", error);
+          // Coba gunakan cache lokal terlebih dahulu sebelum fallback koordinat default
+          const cachedWeather = localStorage.getItem("current_validation_weather");
+          if (cachedWeather) {
+            const parsed = JSON.parse(cachedWeather);
+            setWeather({
+              main: { temp: parsed.temp, humidity: parsed.humidity },
+              wind: { speed: parsed.windSpeed },
+              weather: [{ description: parsed.description || "Offline Cache", icon: parsed.icon || "01d" }],
+              name: parsed.locationName || "Area Tersimpan",
+            });
+            setLoadingLocation(false);
+          } else {
+            fetchWeather(-7.77, 110.37); // Fallback koordinat Jogja
+          }
         },
-        { enableHighAccuracy: true, timeout: 10000 },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 },
       );
     } else {
-      console.error("Geolocation tidak didukung oleh browser ini.");
       setLoadingLocation(false);
       fetchWeather(-7.77, 110.37);
     }
@@ -108,35 +142,44 @@ export default function GreetingBanner({ adminName }: GreetingBannerProps) {
         </div>
       </div>
 
-      {/* SISI KANAN: Widget Cuaca Hari Ini (Struktur data tetap, tinggi pas 166px) */}
-      <div className="bg-white p-4 rounded-3xl border border-zinc-100 shadow-sm flex flex-col justify-between h-41.5">
+      {/* SISI KANAN: Widget Cuaca Hari Ini */}
+      <div className="bg-white p-4 rounded-3xl border border-zinc-100 shadow-sm flex flex-col justify-between h-41.5 relative">
+        {/* Indikator Mode Offline Kecil di Pojok Kanan Atas */}
+        {isOfflineMode && (
+          <span className="absolute top-3 right-3 text-[9px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-semibold border border-amber-200">
+            Mode Offline
+          </span>
+        )}
+
         <div>
           <h2 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
             Cuaca hari ini
           </h2>
 
           {weather ? (
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 mt-1">
               {/* Icon Cuaca Utama */}
               <img
                 src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`}
                 alt={weather.weather[0].description}
                 className="w-12 h-12 object-contain"
+                onError={(e) => {
+                  // Fallback jika gambar gagal dimuat saat offline total
+                  e.currentTarget.style.display = 'none';
+                }}
               />
               <div className="flex items-baseline space-x-2">
                 <span className="text-3xl font-extrabold text-zinc-900">
                   {Math.round(weather.main.temp)}°C
                 </span>
-                <span className="text-[11px] text-zinc-500 capitalize font-medium">
+                <span className="text-[11px] text-zinc-500 capitalize font-medium truncate max-w-28">
                   {weather.weather[0].description}
                 </span>
               </div>
             </div>
           ) : (
             <p className="text-xs text-zinc-400 italic py-2">
-              {loadingLocation
-                ? "Mendeteksi lokasi GPS..."
-                : "Memuat info cuaca..."}
+              {loadingLocation ? "Mendeteksi lokasi GPS..." : "Memuat info cuaca..."}
             </p>
           )}
         </div>
@@ -144,21 +187,21 @@ export default function GreetingBanner({ adminName }: GreetingBannerProps) {
         {/* Grid Detail: Angin & Kelembapan */}
         <div className="grid grid-cols-2 gap-3 border-t border-zinc-200 pt-2 mt-0.5">
           <div className="flex items-center space-x-2 bg-zinc-50 p-1.5 rounded-xl">
-            <FaWind className="text-zinc-400 text-xs" />
+            <FaWind className="text-zinc-400 text-xs shrink-0" />
             <div>
               <p className="text-xs font-bold text-zinc-800">
-                {weather
-                  ? `${Math.round(weather.wind?.speed * 3.6)} km/j`
+                {weather && weather.wind?.speed != null
+                  ? `${Math.round(weather.wind.speed * 3.6)} km/j`
                   : "--"}
               </p>
               <p className="text-[9px] text-zinc-400 font-medium">Angin</p>
             </div>
           </div>
           <div className="flex items-center space-x-2 bg-zinc-50 p-1.5 rounded-xl">
-            <FaTint className="text-blue-400 text-xs" />
+            <FaTint className="text-blue-400 text-xs shrink-0" />
             <div>
               <p className="text-xs font-bold text-zinc-800">
-                {weather ? `${weather.main.humidity}%` : "--"}
+                {weather && weather.main?.humidity != null ? `${weather.main.humidity}%` : "--"}
               </p>
               <p className="text-[9px] text-zinc-400 font-medium">Kelembapan</p>
             </div>
@@ -166,7 +209,7 @@ export default function GreetingBanner({ adminName }: GreetingBannerProps) {
         </div>
 
         {/* Lokasi Bawah */}
-        <div className="flex items-center space-x-1 text-[10px] text-zinc-400 font-medium mt-1.5 ">
+        <div className="flex items-center space-x-1 text-[10px] text-zinc-400 font-medium mt-1.5">
           <FaMapMarkerAlt className="text-emerald-600 shrink-0" />
           <span className="truncate">
             Lokasi: {weather ? `${weather.name}` : "Mencari GPS..."}

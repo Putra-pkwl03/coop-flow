@@ -1,3 +1,4 @@
+'use client';
 // components/dashboard/data-tanaman/PlantDetailSkeleton.tsx
 export default function PlantDetailSkeleton() {
   return (

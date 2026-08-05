@@ -5,18 +5,20 @@ import Swal from "sweetalert2";
 import { FaTimes, FaBoxes, FaLayerGroup, FaCoins, FaCalendarAlt } from "react-icons/fa";
 import api from "@/app/lib/axios"; 
 
-// Konfigurasi Toast SweetAlert2 kanan atas
-const Toast = Swal.mixin({
-  toast: true,
-  position: "top-end",
-  showConfirmButton: false,
-  timer: 4000,
-  timerProgressBar: true,
-  didOpen: (toast) => {
-    toast.onmouseenter = Swal.stopTimer;
-    toast.onmouseleave = Swal.resumeTimer;
-  }
-});
+// ✅ AMAN SAAT BUILD: Menggunakan fungsi helper agar tidak dieksekusi saat prerender di Node.js
+const getToast = () => {
+  return Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 4000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
+};
 
 interface ProcurementItem {
   id: string;
@@ -78,7 +80,7 @@ export default function ProcurementModal({ isOpen, onClose, items, onSuccessSubm
 
   const handleSubmitAction = async () => {
     if (!periodePengadaan.trim()) {
-      Toast.fire({
+      getToast().fire({
         icon: "warning",
         title: "Gagal memproses",
         text: "Periode pengadaan wajib diisi."
@@ -113,12 +115,12 @@ export default function ProcurementModal({ isOpen, onClose, items, onSuccessSubm
       const serverMessage = err.response?.data?.message || "Terjadi kesalahan saat memproses pengadaan.";
       
       // Tembak SweetAlert2 Toast Error di Kanan Atas
-      Toast.fire({
+      getToast().fire({
         icon: "error",
         title: "Proses Gagal",
         text: serverMessage
       });
-    } {
+    } finally {
       setLoading(false);
     }
   };

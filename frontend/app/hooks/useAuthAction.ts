@@ -1,25 +1,18 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import Swal from 'sweetalert2';
 import api from '../lib/axios'; 
-
-const Toast = Swal.mixin({
-  toast: true,
-  position: 'top-end',
-  showConfirmButton: false,
-  timer: 2000,
-  timerProgressBar: true,
-  didOpen: (toast) => {
-    toast.addEventListener('mouseenter', Swal.stopTimer);
-    toast.addEventListener('mouseleave', Swal.resumeTimer);
-  }
-});
 
 export function useAuthAction() {
   const router = useRouter();
 
-  const logout = () => {
+  const logout = async () => {
+    // Proteksi SSR - Pastikan hanya berjalan di Browser Client
+    if (typeof window === 'undefined') return;
+
+    // Load SweetAlert2 secara dinamis HANYA saat tombol logout diklik
+    const Swal = (await import('sweetalert2')).default;
+
     Swal.fire({
       title: 'Apakah anda yakin?',
       text: "Sesi login operasional Anda akan berakhir.",
@@ -49,7 +42,19 @@ export function useAuthAction() {
           document.cookie = "access_token=; path=/; max-age=0;";
           document.cookie = "user_role=; path=/; max-age=0;";
 
-          // 4. Munculkan notifikasi sukses
+          // 4. Toast sukses
+          const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+              toast.addEventListener('mouseenter', Swal.stopTimer);
+              toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+          });
+
           Toast.fire({
             icon: 'success',
             title: 'Berhasil Keluar! Sesi Anda berakhir.'

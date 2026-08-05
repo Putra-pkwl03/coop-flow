@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { FaUserAlt, FaMapMarkerAlt } from 'react-icons/fa';
-import { Farmer, Land } from '@/app/dashboard/admin-lapangan/validasi-lahan/page';
+import { Farmer, Land } from '@/app/dashboard/admin-lapangan/validasi-lahan/ValidasiLahanPage';
 
 interface FarmerLandCardProps {
   farmer: Farmer;
