@@ -14,36 +14,61 @@
 
 
 
-FROM node:20-alpine
-
+# ==========================================
+# 1. BASE IMAGE & DEPENDENCIES
+# ==========================================
+FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Copy package management files
 COPY package*.json ./
+RUN npm ci
 
-# Install SEMUA dependencies (dev & prod) agar CLI 'next' tersedia saat build
-RUN npm install
+# ==========================================
+# 2. BUILDER STAGE
+# ==========================================
+FROM node:20-alpine AS builder
+WORKDIR /app
 
-# Copy seluruh source code
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# ⬇️ 1. Masukkan ARG & ENV untuk URL API Backend
+
+# Environment Variables saat Build Time
 ARG NEXT_PUBLIC_API_URL="https://coop-flow-backend-v1.up.railway.app"
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# ⬇️ 2. Tambahkan ARG & ENV untuk Weather API Key ini (PENTING)
 ARG NEXT_PUBLIC_WEATHER_API_KEY="580138b622128076fd1b6a3651c6a59d"
 ENV NEXT_PUBLIC_WEATHER_API_KEY=$NEXT_PUBLIC_WEATHER_API_KEY
 
-# Build Next.js
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV production
+
+# Build Next.js & Generate PWA Service Worker (sw.js)
 RUN npm run build
 
-# Set environment runtime
+# ==========================================
+# 3. RUNNER STAGE (Production Standalone)
+# ==========================================
+FROM node:20-alpine AS runner
+WORKDIR /app
+
 ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
+# Buat user non-root demi keamanan
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# 🌟 KRUSIAL UNTUK PWA & STANDALONE:
+# Copy file public (sw.js & workbox-*.js) & static assets ke folder standalone
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
 EXPOSE 3000
 
-# Langsung jalankan server bawaan hasil standalone/next start
-CMD ["npx", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
+# 🌟 Jalankan server standalone langsung (sangat cepat & ramah RAM Railway)
+CMD ["node", "server.js"]
