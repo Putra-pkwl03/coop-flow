@@ -5,9 +5,7 @@ import dynamic from 'next/dynamic';
 import { FaTrash, FaPlus, FaExpand, FaCompress, FaLayerGroup, FaRedo, FaCheck, FaTimes, FaWifi, FaExclamationTriangle } from 'react-icons/fa';
 import Swal from 'sweetalert2'; 
 
-// Import fungsi service cuaca analitis
 import { getHistoricalWeatherML } from '@/app/services/weatherService';
-// Import komponen statistik iklim
 import MacroClimateStats from './MacroClimateStats';
 
 import 'leaflet/dist/leaflet.css';
@@ -32,7 +30,7 @@ interface MapWorkspaceProps {
   onTriggerReMapping?: () => void;
   calculatedAreaText?: string; 
   onSave?: (payload: any) => void; 
-  onCancel?: () => void;                
+  onCancel?: () => void;                 
 }
 
 export default function MapWorkspace({ 
@@ -48,14 +46,13 @@ export default function MapWorkspace({
   onSave,
   onCancel
 }: MapWorkspaceProps) {
-  const [currentGPS, setCurrentGPS] = useState<[number, number]>([-7.72, 110.32]);
+  const [currentGPS, setCurrentGPS] = useState<[number, number]>([-7.7924, 110.3313]); // Default ke koordinat tersimpan
   const [polygonCoords, setPolygonCoords] = useState<[number, number][]>([]);
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null); 
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [activeLayer, setActiveLayer] = useState<'esri' | 'google'>('esri');
   const [zoomAction, setZoomAction] = useState<{ type: 'in' | 'out' | null; id: number }>({ type: null, id: 0 });
   
-  // State indikator jaringan PWA
   const [isOnline, setIsOnline] = useState<boolean>(true);
 
   // State untuk menyimpan nilai cuaca makro
@@ -67,13 +64,49 @@ export default function MapWorkspace({
 
   const workspaceRef = useRef<HTMLDivElement>(null);
 
-  // 🌟 CHECK STATUS KONEKSI PWA REALTIME
+  // 🌟 READ WEATHER FROM LOCAL STORAGE ON OFFLINE / INITIAL LOAD
+  const loadLocalStorageWeather = () => {
+    try {
+      const savedWeather = localStorage.getItem('current_validation_weather');
+      const fallbackWeather = localStorage.getItem('last_successful_openweather');
+
+      if (savedWeather) {
+        const parsed = JSON.parse(savedWeather);
+        setMacroClimate({
+          avgTemp: parsed.temp ?? '--',
+          avgHumidity: parsed.humidity ?? '--',
+          avgRain: parsed.rain ?? 0
+        });
+        if (parsed.latitude && parsed.longitude) {
+          setCurrentGPS([parsed.latitude, parsed.longitude]);
+        }
+      } else if (fallbackWeather) {
+        const parsed = JSON.parse(fallbackWeather);
+        setMacroClimate({
+          avgTemp: parsed.main?.temp ?? '--',
+          avgHumidity: parsed.main?.humidity ?? '--',
+          avgRain: parsed.rain?.['1h'] ?? 0
+        });
+      }
+    } catch (e) {
+      console.error('Gagal membaca cache cuaca lokal:', e);
+    }
+  };
+
+  // 🌟 CHECK STATUS KONEKSI & READ LOCAL CACHE
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    
     setIsOnline(navigator.onLine);
+    if (!navigator.onLine) {
+      loadLocalStorageWeather();
+    }
 
     const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOffline = () => {
+      setIsOnline(false);
+      loadLocalStorageWeather();
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -94,7 +127,7 @@ export default function MapWorkspace({
     }
   }, [initialPolygon]);
 
-  // Sinkronisasi data iklim dari DB Backend / Offline IndexedDB ke UI
+  // Sinkronisasi data iklim dari DB / Offline Cache ke UI
   useEffect(() => {
     if (activeTab === 'sudah' && selectedLandData) {
       const dbTemp = selectedLandData.average_temperature;
@@ -107,11 +140,16 @@ export default function MapWorkspace({
         avgRain: dbRain !== null && dbRain !== undefined ? Number(dbRain) : '--'
       });
     } else if (activeTab === 'belum' && polygonCoords.length === 0) {
-      setMacroClimate({ avgTemp: '--', avgHumidity: '--', avgRain: '--' });
+      // Jika offline dan belum pilih lahan, load dari local storage
+      if (!isOnline) {
+        loadLocalStorageWeather();
+      } else {
+        setMacroClimate({ avgTemp: '--', avgHumidity: '--', avgRain: '--' });
+      }
     }
-  }, [selectedLandId, selectedLandData, activeTab]);
+  }, [selectedLandId, selectedLandData, activeTab, isOnline]);
 
-  // GPS Native Tracking Perangkat (Bisa bekerja tanpa internet)
+  // GPS Native Tracking Perangkat (Berjalan tanpa internet via Hardware Chip GPS)
   useEffect(() => {
     if (initialPolygon && initialPolygon.length > 0) return;
     if (!("geolocation" in navigator)) return;
@@ -122,8 +160,8 @@ export default function MapWorkspace({
         setCurrentGPS([latitude, longitude]);
         setGpsAccuracy(Math.round(accuracy));
       },
-      (error) => console.error(error.message),
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      (error) => console.warn('GPS Warning:', error.message),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
@@ -143,8 +181,8 @@ export default function MapWorkspace({
 
   const handleClearPolygon = () => {
     setPolygonCoords([]);
-    setMacroClimate({ avgTemp: '--', avgHumidity: '--', avgRain: '--' });
     if (onPolygonChange) onPolygonChange([]);
+    if (!isOnline) loadLocalStorageWeather();
   };
 
   const handleMapTap = (lat: number, lng: number) => {
@@ -166,7 +204,6 @@ export default function MapWorkspace({
         icon: 'info',
         title: 'Mode Gambar Ulang Aktif. Silakan plot simpul koordinat baru.'
       });
-      setMacroClimate({ avgTemp: '--', avgHumidity: '--', avgRain: '--' });
       if (onPolygonChange) onPolygonChange([]); 
       onTriggerReMapping(); 
     }
@@ -181,40 +218,53 @@ export default function MapWorkspace({
     }
   };
 
-  // 🌟 PENYESUAIAN PWA OFFLINE MODE PADA PROSES SIMPAN KOORDINAT
+  // 🌟 PROSES SIMPAN KOORDINAT DENGAN OFFLINE WEATHER FALLBACK
   const handleSaveWorkspace = async () => {
     if (polygonCoords.length < 3) {
-      Swal.fire('Aturan Validasi Spasial', 'Lahan wajib berbentuk poligon tertutup (minimal membutuhkan 3 titik koordinat)!', 'warning');
+      Swal.fire('Aturan Validasi Spasial', 'Lahan wajib berbentuk poligon tertutup (minimal 3 titik koordinat)!', 'warning');
       return;
     }
 
     const [lat, lng] = polygonCoords[0]; 
     let climateResult = null;
 
-    // 🌟 Jika online, coba ambil data Open-Meteo. Jika offline, lakukan Fallback!
     if (isOnline) {
       Swal.fire({
         title: 'Menganalisis Iklim Wilayah...',
-        text: 'Mengumpulkan histori data cuaca 3 tahun dari Open-Meteo untuk standarisasi prediksi ML.',
+        text: 'Mengambil data histori cuaca Open-Meteo...',
         allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
+        didOpen: () => Swal.showLoading()
       });
 
       try {
         climateResult = await getHistoricalWeatherML(lat, lng, 3);
       } catch (err) {
-        console.warn('Gagal memuat cuaca dari server (Offline Mode Active):', err);
+        console.warn('Gagal memuat cuaca online, menggunakan cache lokal:', err);
       } finally {
         Swal.close();
       }
     }
 
-    // 🌟 Fallback jika offline / API cuaca gagal
-    const finalTemp = climateResult?.avg_temperature ?? 27.5; // Estimasi standar rata-rata tropis
-    const finalHumidity = climateResult?.avg_humidity ?? 80;
-    const finalRain = climateResult?.avg_monthly_precipitation ?? 150;
+    // Ambil data cache jika offline atau API gagal
+    let cachedTemp = 22.77;
+    let cachedHumidity = 84;
+    let cachedRain = 0;
+
+    try {
+      const localData = localStorage.getItem('current_validation_weather');
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        cachedTemp = parsed.temp ?? cachedTemp;
+        cachedHumidity = parsed.humidity ?? cachedHumidity;
+        cachedRain = parsed.rain ?? cachedRain;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    const finalTemp = climateResult?.avg_temperature ?? cachedTemp;
+    const finalHumidity = climateResult?.avg_humidity ?? cachedHumidity;
+    const finalRain = climateResult?.avg_monthly_precipitation ?? cachedRain;
 
     setMacroClimate({
       avgTemp: finalTemp,
@@ -232,9 +282,9 @@ export default function MapWorkspace({
 
     if (!isOnline) {
       Swal.fire({
-        icon: 'warning',
-        title: 'Simpan Spasial Offline',
-        text: 'Koordinat peta tersimpan di memori perangkat. Analisis statistik iklim mendalam akan disinkronkan otomatis saat terhubung ke internet.',
+        icon: 'info',
+        title: 'Tersimpan secara Offline',
+        text: 'Koordinat & estimasi cuaca disimpan di memori HP. Data akan disinkronkan penuh saat online.',
         timer: 3000,
         showConfirmButton: false
       });
@@ -250,16 +300,16 @@ export default function MapWorkspace({
       <div className="flex items-center justify-between px-2 pt-2">
         <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Lokasi dan Koordinat Lahan</h4>
         
-        {/* Indikator PWA Status Jaringan di Peta */}
+        {/* Indikator Status Jaringan PWA */}
         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
           isOnline ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
         }`}>
           {isOnline ? <FaWifi size={10} /> : <FaExclamationTriangle size={10} />}
-          {isOnline ? 'GPS & API Online' : 'PWA Offline Mode'}
+          {isOnline ? 'GPS & Server Online' : 'PWA Offline Mode (Menggunakan Cache)'}
         </span>
       </div>
       
-      {/* PETA */}
+      {/* PETA CONTAINER */}
       <div 
         ref={workspaceRef}
         className={`bg-white relative shadow-sm overflow-hidden border border-zinc-200 transition-all ${
@@ -368,7 +418,7 @@ export default function MapWorkspace({
           }`}
         >
           <FaCheck />
-          <span>Simpan Hasil Sinkronisasi</span>
+          <span>Simpan Hasil Validasi</span>
         </button>
       </div>
 

@@ -65,7 +65,6 @@
 // };
 
 // export default withPWA(nextConfig);
-
 import withPWAInit from 'next-pwa';
 
 const withPWA = withPWAInit({
@@ -81,10 +80,24 @@ const withPWA = withPWAInit({
 
   // Konfigurasi Workbox Runtime Caching
   runtimeCaching: [
+    // 🌟 1. Cache Tile Peta Spasial (Esri Satellite, OpenStreetMap, CartoDB, Google)
     {
-      // 🌟 1. Cache Dokumen & Navigasi dengan StaleWhileRevalidate
-      // Jika ada cache, tampilkan LANGSUNG dari cache (sangat cepat & aman saat offline),
-      // sambil memperbarui cache di background jika sedang online.
+      urlPattern: /^https?:\/\/(server\.arcgisonline\.com|.*\.tile\.openstreetmap\.org|.*\.basemaps\.cartocdn\.com|.*\.google\.com\/vt\/lyrs=.*)\/.*$/i,
+      handler: 'CacheFirst', // Ambil dari cache dulu agar peta langsung muncul kilat saat offline
+      options: {
+        cacheName: 'spatial-map-tiles',
+        expiration: {
+          maxEntries: 1000, // Menampung ribuan pecahan gambar tile peta
+          maxAgeSeconds: 30 * 24 * 60 * 60, // Disimpan selama 30 Hari
+        },
+        cacheableResponse: {
+          statuses: [0, 200], // Menangani opaque response dari sumber peta eksternal
+        },
+      },
+    },
+
+    // 🌟 2. Cache Dokumen & Navigasi dengan StaleWhileRevalidate
+    {
       urlPattern: ({ request }) => request.mode === 'navigate',
       handler: 'StaleWhileRevalidate',
       options: {
@@ -95,8 +108,9 @@ const withPWA = withPWAInit({
         },
       },
     },
+
+    // 🌟 3. Cache Data RSC / App Router Next.js Internal
     {
-      // 🌟 2. Cache Data RSC / App Router Next.js Internal
       urlPattern: /\/_next\/data\/.*/i,
       handler: 'StaleWhileRevalidate',
       options: {
@@ -107,8 +121,9 @@ const withPWA = withPWAInit({
         },
       },
     },
+
+    // 🌟 4. Cache Aset Statis Next.js (JS, CSS)
     {
-      // 🌟 3. Cache Aset Statis Next.js (JS, CSS)
       urlPattern: /^https?:\/\/.*\/_next\/static\/.*/i,
       handler: 'CacheFirst',
       options: {
@@ -119,8 +134,9 @@ const withPWA = withPWAInit({
         },
       },
     },
+
+    // 🌟 5. Cache Gambar & Media
     {
-      // 🌟 4. Cache Gambar & Media
       urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
       handler: 'StaleWhileRevalidate',
       options: {
