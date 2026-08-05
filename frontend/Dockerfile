@@ -13,26 +13,18 @@
 # CMD ["npm", "run", "dev", "--", "-H", "0.0.0.0"]
 
 
+FROM node:20-alpine
 
-# ==========================================
-# 1. BASE IMAGE & DEPENDENCIES
-# ==========================================
-FROM node:20-alpine AS deps
 WORKDIR /app
 
+# 1. Copy package management files & install dependencies
 COPY package*.json ./
 RUN npm ci
 
-# ==========================================
-# 2. BUILDER STAGE
-# ==========================================
-FROM node:20-alpine AS builder
-WORKDIR /app
-
-COPY --from=deps /app/node_modules ./node_modules
+# 2. Copy seluruh source code
 COPY . .
 
-# Environment Variables saat Build Time
+# 3. Environment Variables saat Build Time
 ARG NEXT_PUBLIC_API_URL="https://coop-flow-backend-v1.up.railway.app"
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
@@ -42,33 +34,18 @@ ENV NEXT_PUBLIC_WEATHER_API_KEY=$NEXT_PUBLIC_WEATHER_API_KEY
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV NODE_ENV production
 
-# Build Next.js & Generate PWA Service Worker (sw.js)
+# 4. Build Next.js & Generate PWA Service Worker
 RUN npm run build
 
-# ==========================================
-# 3. RUNNER STAGE (Production Standalone)
-# ==========================================
-FROM node:20-alpine AS runner
-WORKDIR /app
+# 5. 🌟 KOPI ASET PUBLIK & STATIS KE FOLDER STANDALONE
+# Langkah ini memastikan sw.js, manifest, dan gambar-gambar dibaca oleh PWA
+RUN cp -r public .next/standalone/public
+RUN cp -r .next/static .next/standalone/.next/static
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-# Buat user non-root demi keamanan
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# 🌟 KRUSIAL UNTUK PWA & STANDALONE:
-# Copy file public (sw.js & workbox-*.js) & static assets ke folder standalone
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
 EXPOSE 3000
 
-# 🌟 Jalankan server standalone langsung (sangat cepat & ramah RAM Railway)
-CMD ["node", "server.js"]
+# 6. 🌟 Eksekusi server standalone secara eksplisit dengan path lengkap
+CMD ["node", ".next/standalone/server.js"]
