@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import SWRegister from "./sw-register"; // 👈 Import komponen SWRegister
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,13 +38,14 @@ export default function RootLayout({
   return (
     <html
       lang="id"
-      suppressHydrationWarning={true} // 👈 1. Tambahkan di sini
+      suppressHydrationWarning={true}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body
         className="min-h-full flex flex-col"
-        suppressHydrationWarning={true} // 👈 2. Tambahkan di sini juga
+        suppressHydrationWarning={true}
       >
+        <SWRegister /> {/* 👈 Dipanggil di sini agar berjalan saat aplikasi diakses */}
         {children}
       </body>
     </html>
