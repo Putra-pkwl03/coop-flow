@@ -63,40 +63,38 @@
 //     ];
 //   },
 // };
-
-// export default withPWA(nextConfig);
 import withPWAInit from 'next-pwa';
 
 const withPWA = withPWAInit({
   dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
+  // Paksa selalu aktif di produksi
+  disable: process.env.NODE_ENV === 'development', 
   register: true,
   skipWaiting: true,
   
-  // Halaman fallback jika pengguna offline & halaman belum ada di cache
+  // Ubah '/~offline' menjadi '/offline' agar tidak diblokir routing Next.js
   fallbacks: {
-    document: '/~offline',
+    document: '/offline',
   },
 
-  // Konfigurasi Workbox Runtime Caching
   runtimeCaching: [
-    // 🌟 1. Cache Tile Peta Spasial (Esri Satellite, OpenStreetMap, CartoDB, Google)
+    // 1. Cache Tile Peta Spasial
     {
       urlPattern: /^https?:\/\/(server\.arcgisonline\.com|.*\.tile\.openstreetmap\.org|.*\.basemaps\.cartocdn\.com|.*\.google\.com\/vt\/lyrs=.*)\/.*$/i,
-      handler: 'CacheFirst', // Ambil dari cache dulu agar peta langsung muncul kilat saat offline
+      handler: 'CacheFirst',
       options: {
         cacheName: 'spatial-map-tiles',
         expiration: {
-          maxEntries: 1000, // Menampung ribuan pecahan gambar tile peta
-          maxAgeSeconds: 30 * 24 * 60 * 60, // Disimpan selama 30 Hari
+          maxEntries: 1000,
+          maxAgeSeconds: 30 * 24 * 60 * 60,
         },
         cacheableResponse: {
-          statuses: [0, 200], // Menangani opaque response dari sumber peta eksternal
+          statuses: [0, 200],
         },
       },
     },
 
-    // 🌟 2. Cache Dokumen & Navigasi dengan StaleWhileRevalidate
+    // 2. Cache Navigasi / Dokumen Page
     {
       urlPattern: ({ request }) => request.mode === 'navigate',
       handler: 'StaleWhileRevalidate',
@@ -104,12 +102,12 @@ const withPWA = withPWAInit({
         cacheName: 'pages-cache',
         expiration: {
           maxEntries: 64,
-          maxAgeSeconds: 24 * 60 * 60 * 30, // 30 Hari
+          maxAgeSeconds: 24 * 60 * 60 * 30,
         },
       },
     },
 
-    // 🌟 3. Cache Data RSC / App Router Next.js Internal
+    // 3. Cache Data Next.js
     {
       urlPattern: /\/_next\/data\/.*/i,
       handler: 'StaleWhileRevalidate',
@@ -122,7 +120,7 @@ const withPWA = withPWAInit({
       },
     },
 
-    // 🌟 4. Cache Aset Statis Next.js (JS, CSS)
+    // 4. Cache Asset Statis Next.js (JS, CSS)
     {
       urlPattern: /^https?:\/\/.*\/_next\/static\/.*/i,
       handler: 'CacheFirst',
@@ -135,7 +133,7 @@ const withPWA = withPWAInit({
       },
     },
 
-    // 🌟 5. Cache Gambar & Media
+    // 5. Cache Gambar
     {
       urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
       handler: 'StaleWhileRevalidate',
