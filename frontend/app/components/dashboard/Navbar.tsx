@@ -13,8 +13,8 @@ import {
   FaSyncAlt,
   FaExclamationTriangle,
 } from "react-icons/fa";
-import { db } from "../../lib/db"; // Sesuaikan relative path ke db.ts
-import { syncOfflineData } from "../../lib/syncEngine"; // Sesuaikan relative path ke syncEngine.ts
+import { db } from "../../lib/db";
+import { syncOfflineData } from "../../lib/syncEngine";
 
 interface NavbarProps {
   adminName: string;
@@ -64,15 +64,9 @@ export default function Navbar({
 
     try {
       setIsSyncing(true);
-      
-      // 1. Jalankan engine sinkronisasi
       await syncOfflineData();
-      
-      // 2. Perbarui hitungan lokal
       const count = await db.syncQueue.count();
       setPendingSyncCount(count);
-
-      // 3. Reload halaman secara penuh untuk menyegarkan seluruh tabel/state UI
       window.location.reload();
     } catch (error) {
       console.error("Gagal melakukan sinkronisasi data:", error);
@@ -87,42 +81,57 @@ export default function Navbar({
     const roleFromCookie = getCookie("user_role");
     setCurrentRole(roleFromCookie);
 
-    // 1. Fungsi Cek Koneksi Aktual (Ping Server dengan Fallback Navigator)
+    // 🌟 PERBAIKAN PENTING: Pengecekan Koneksi Aktual yang Akurat
     const checkActualConnection = async () => {
+      // 1. Cek dulu flag browser dasar
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         setIsOnline(false);
         return;
       }
 
+      // 2. Gunakan AbortController dengan Timeout 2.5 Detik
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+
       try {
+        // Ping endpoint publik yang tidak akan di-cache oleh Service Worker
         const response = await fetch(`/api/health?t=${Date.now()}`, {
           method: "HEAD",
           cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+          signal: controller.signal,
         });
 
+        clearTimeout(timeoutId);
         const onlineStatus = response.ok;
 
         setIsOnline((prevOnline) => {
-          // Jika status berubah dari OFFLINE ke ONLINE, cek antrean dan trigger sync
           if (!prevOnline && onlineStatus) {
-            db.syncQueue.count().then((queueCount) => {
-              if (queueCount > 0) {
-                executeSyncAndReload();
-              }
-            }).catch((err) => console.error("Gagal membaca syncQueue:", err));
+            db.syncQueue
+              .count()
+              .then((queueCount) => {
+                if (queueCount > 0) {
+                  executeSyncAndReload();
+                }
+              })
+              .catch((err) => console.error("Gagal membaca syncQueue:", err));
           }
           return onlineStatus;
         });
       } catch (err) {
-        // Fallback jika /api/health tidak merespons/belum ada: percaya pada navigator.onLine
-        setIsOnline(navigator.onLine);
+        clearTimeout(timeoutId);
+        // 🌟 JIKA FETCH GAGAL / TIMEOUT -> DIPASTIKAN OFFLINE
+        setIsOnline(false);
       }
     };
 
-    // Jalankan pengecekan koneksi saat komponen di-mount
+    // Jalankan pengecekan koneksi awal
     checkActualConnection();
 
-    // 2. Handler Event Browser
+    // Event Handler Browser
     const handleOnline = async () => {
       await checkActualConnection();
     };
@@ -134,7 +143,7 @@ export default function Navbar({
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // 3. Interval Update Jumlah Data Tertunda & Periodic Health Check
+    // Update jumlah antrean sync
     const updateSyncCount = async () => {
       try {
         const count = await db.syncQueue.count();
@@ -145,14 +154,14 @@ export default function Navbar({
     };
 
     updateSyncCount();
-    
-    // Timer interval gabungan (Setiap 3 detik update jumlah queue, sekaligus re-check koneksi)
+
+    // Timer Interval 4 Detik
     const intervalId = setInterval(() => {
       updateSyncCount();
       checkActualConnection();
-    }, 5000);
+    }, 4000);
 
-    // 4. Click Outside Dropdown
+    // Click Outside Dropdown
     function handleClickOutside(event: MouseEvent) {
       if (
         dropdownRef.current &&
@@ -169,9 +178,8 @@ export default function Navbar({
       window.removeEventListener("mousedown", handleClickOutside);
       clearInterval(intervalId);
     };
-  }, []); // Dependency array kosong [] agar lifecycle stabil dan interval tidak terduplikasi
+  }, [executeSyncAndReload]);
 
-  // Handler Klik Tombol Manual
   const handleManualSyncClick = async () => {
     if (!isOnline || pendingSyncCount === 0 || isSyncing) return;
     await executeSyncAndReload();
@@ -189,7 +197,6 @@ export default function Navbar({
     ? "bg-[#107349] border-b border-green-700 text-white"
     : "bg-white border-2 border-b border-slate-200 shadow-md shadow-green-800/80 text-slate-800";
 
-  // Kondisi Tombol Aktif
   const isSyncAllowed = isOnline && pendingSyncCount > 0 && !isSyncing;
 
   return (
@@ -223,7 +230,7 @@ export default function Navbar({
 
       {/* Kanan Navbar */}
       <div className="flex items-center space-x-5">
-        {/* Indikator Sinkronisasi Dinamis (Khusus Admin Lapangan) */}
+        {/* Indikator Sinkronisasi Dinamis */}
         {currentRole === "admin-lapangan" && isMounted && (
           <button
             onClick={handleManualSyncClick}
