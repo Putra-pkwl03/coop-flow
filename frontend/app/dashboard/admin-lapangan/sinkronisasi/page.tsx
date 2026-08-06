@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation"; 
 import { FaCloudUploadAlt, FaSyncAlt, FaTrash, FaArrowLeft } from "react-icons/fa";
 import Link from "next/link";
 import { db, SyncQueue } from "../../../lib/db";
@@ -14,6 +15,8 @@ import QueueTable from "@/app/components/dashboard/sync/QueueTable";
 import PayloadModal from "@/app/components/dashboard/sync/PayloadModal";
 
 export default function SinkronisasiPage() {
+  const router = useRouter(); 
+
   const [queueItems, setQueueItems] = useState<SyncQueue[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -140,37 +143,49 @@ export default function SinkronisasiPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#f8fafc] text-zinc-800 antialiased font-sans pb-12 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Navigation & Status Header */}
-        <div className="flex items-center justify-between">
-          <Link
-            href="/dashboard/admin-lapangan"
-            className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-emerald-700 transition-colors"
-          >
-            <FaArrowLeft className="mr-2 text-[10px]" /> Kembali ke Dashboard
-          </Link>
-          <ConnectionStatusBadge isOnline={isOnline} />
-        </div>
-
-        {/* Main Action Banner */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl shadow-xs border border-slate-100">
-          <div>
-            <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2.5">
-              <FaCloudUploadAlt className="text-emerald-600 text-2xl" />
-              Sinkronisasi Data Offline
-            </h1>
-            <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
-              Kelola dan simpan data lokal ke server backend saat koneksi internet tersedia secara aman.
-            </p>
+        
+        {/* TOPBAR HEADER */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/dashboard/admin-lapangan')}
+              className="p-2.5 bg-white border border-zinc-200 rounded-xl text-zinc-500 hover:text-zinc-800 shadow-xs transition cursor-pointer"
+            >
+              <FaArrowLeft className="text-sm" />
+            </button>
+            <div>
+              <h1 className="text-xl font-extrabold text-zinc-900 tracking-tight flex items-center gap-2">
+                <FaCloudUploadAlt className="text-emerald-600" />
+                Sinkronisasi Data Offline
+              </h1>
+              <p className="text-xs text-zinc-500 font-medium">
+                Kelola dan kirim data lokal ke server backend saat koneksi internet tersedia
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          {/* Connection Status Badge */}
+          <div className="self-start sm:self-auto">
+            <ConnectionStatusBadge isOnline={isOnline} />
+          </div>
+        </div>
+
+        {/* Action Controls Card */}
+        <div className="flex items-center justify-between bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-zinc-200/80">
+          <div className="text-xs text-zinc-500 font-medium hidden sm:block">
+            {queueItems.length > 0 
+              ? `Terdapat ${queueItems.length} antrean data menunggu untuk disinkronkan.`
+              : "Semua data lokal telah tersinkronisasi."}
+          </div>
+
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
             {queueItems.length > 0 && (
               <button
                 onClick={handleClearAllQueue}
                 disabled={isSyncing}
-                className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold border border-rose-100 transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold border border-rose-100 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <FaTrash className="text-xs" /> Kosongkan
               </button>
@@ -179,9 +194,9 @@ export default function SinkronisasiPage() {
             <button
               onClick={handleSyncNow}
               disabled={!isOnline || queueItems.length === 0 || isSyncing}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-2 transition-all ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-2 transition-all cursor-pointer ${
                 !isOnline || queueItems.length === 0 || isSyncing
-                  ? "bg-slate-300 cursor-not-allowed"
+                  ? "bg-zinc-300 cursor-not-allowed shadow-none"
                   : "bg-emerald-600 hover:bg-emerald-700 active:scale-98 shadow-emerald-200"
               }`}
             >
