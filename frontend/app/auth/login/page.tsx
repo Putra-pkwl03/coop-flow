@@ -18,9 +18,9 @@ export default function LoginPage() {
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [checkingHealth, setCheckingHealth] = useState<boolean>(false);
 
-  // Function Pengecekan Health Check Ke Backend
+  // Function Pengecekan Health Check Ke Backend (DIPERBAIKI)
   const checkBackendHealth = useCallback(async () => {
-    // Jika browser terindikasi offline secara hardware, langsung set false tanpa hit API
+    // 1. Cek hardware koneksi browser lebih dulu
     if (typeof window !== "undefined" && !navigator.onLine) {
       setIsOnline(false);
       return false;
@@ -28,13 +28,19 @@ export default function LoginPage() {
 
     try {
       setCheckingHealth(true);
-      // Ganti '/health' atau '/ping' sesuai endpoint health check backend Anda
-      // Gunakan timeout singkat (misal 4 detik) agar UI tidak hung lama
-      await api.get("/health", { timeout: 4000 });
+      
+      // Axios akan menganggap sukses jika ada RESPON APAPUN dari server (200, 401, 404)
+      // karena yang kita butuhkan hanya kepastian "Server Backend merespons / hidup"
+      await api.get("/health", { 
+        timeout: 4000,
+        validateStatus: (status) => status < 500 // Status < 500 berarti server merespons!
+      });
+
       setIsOnline(true);
       return true;
-    } catch (error) {
-      // Jika terjadi error network/timeout/500, tandai sebagai Offline
+    } catch (error: any) {
+      // Jika terjadi ERR_NETWORK, ECONNREFUSED, atau Timeout (504), baru anggap Offline
+      console.warn("[HealthCheck] Server Backend tidak dapat dijangkau:", error?.message);
       setIsOnline(false);
       return false;
     } finally {
@@ -42,19 +48,16 @@ export default function LoginPage() {
     }
   }, []);
 
-  // Monitoring koneksi: Pengecekan Awal + Periodic Interval + Browser Event Listener
+  // Monitoring koneksi
   useEffect(() => {
-    // 1. Cek kesehatan server saat halaman pertama dibuka
     checkBackendHealth();
 
-    // 2. Listener event jaringan bawaan browser
     const handleOnline = () => checkBackendHealth();
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // 3. Ping berkala setiap 15 detik untuk memantau status server secara real-time
     const interval = setInterval(() => {
       checkBackendHealth();
     }, 15000);
@@ -81,20 +84,19 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Re-verify kesehatan server sekali lagi tepat sebelum melayangkan request login
+    // Verifikasi status server tepat sebelum submit
     const isServerAlive = await checkBackendHealth();
 
     if (!isServerAlive) {
       Swal.fire({
         icon: "error",
         title: "Koneksi Terputus",
-        text: "Tidak dapat terhubung ke server backend. Harap periksa jaringan internet Anda dan pastikan server beroperasi.",
+        text: "Tidak dapat terhubung ke server backend. Harap periksa jaringan internet Anda.",
         confirmButtonColor: "#005c27",
       });
       return;
     }
 
-    // Validasi Input Kosong
     if (!identifier || !password) {
       Toast.fire({
         icon: "warning",
@@ -113,15 +115,12 @@ export default function LoginPage() {
 
       const { access_token, user } = response.data;
 
-      // 1. Simpan data ke LocalStorage untuk Client-Side State
       localStorage.setItem("access_token", access_token);
       localStorage.setItem("user_profile", JSON.stringify(user));
 
-      // 2. Ambil semua role dari user
       const userRoles = user.roles?.map((r: any) => r.name) || [];
       const primaryRole = userRoles[0] || ""; 
 
-      // 3. Simpan access_token DAN user_role ke Cookies agar terbaca oleh Middleware
       document.cookie = `access_token=${access_token}; path=/; max-age=86400; SameSite=Lax;`;
       document.cookie = `user_role=${primaryRole}; path=/; max-age=86400; SameSite=Lax;`;
 
@@ -130,7 +129,6 @@ export default function LoginPage() {
         title: "Login Berhasil! Selamat datang.",
       });
 
-      // 4. Redirect berdasarkan Role
       if (userRoles.includes("admin-lapangan")) {
         router.push("/dashboard/admin-lapangan");
       } else if (userRoles.includes("petugas-koperasi")) {
@@ -162,16 +160,13 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row bg-white font-sans">
-      {/* ========================================== */}
-      {/* SISI KIRI: Brand Panel Gambar Premium      */}
-      {/* ========================================== */}
+      {/* SISI KIRI: Brand Panel */}
       <div
         className="w-full md:w-3/5 relative flex flex-col p-8 md:p-16 text-white min-h-[60vh] md:min-h-screen bg-cover bg-center select-none"
         style={{ backgroundImage: "url('/bg-login.jpeg')" }}
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-black/80 via-black/40 to-black/30 z-0" />
 
-        {/* 1. Logo & Identitas Aplikasi */}
         <div className="z-10 flex items-center gap-4">
           <div className="w-14 h-14 flex items-center justify-center">
             <img
@@ -190,7 +185,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* 2. KONTEN TENGAH: Slogan & Deskripsi Utama */}
         <div className="z-10 max-w-2xl mt-16 md:mt-36">
           <h1
             className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-[1.2] tracking-tight mb-4"
@@ -211,7 +205,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* 3. KONTEN BAWAH: Badges Statistics */}
         <div className="z-10 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-white/10 mt-20 md:mt-auto">
           <div className="flex items-center gap-3 bg-white/5 backdrop-blur-sm p-3.5 rounded-xl border border-white/5">
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm shrink-0">
@@ -245,19 +238,17 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ========================================== */}
-      {/* SISI KANAN: Form Komponen Masuk            */}
-      {/* ========================================== */}
+      {/* SISI KANAN: Form Login */}
       <div className="w-full md:w-2/5 flex items-center justify-center p-6 md:p-10 bg-gray-50">
         <div className="w-full max-w-2xl bg-white p-8 md:p-12 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.07)] border border-gray-100">
           
-          {/* Banner Peringatan Offline (Berdasarkan Hasil Health Check) */}
+          {/* Banner Peringatan jika Server/Jaringan Offline */}
           {!isOnline && (
             <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-700 text-xs font-semibold">
               <div className="flex items-center gap-3">
                 <FiWifiOff className="text-lg shrink-0" />
                 <span>
-                  Server terdeteksi <strong>offline</strong>. Koneksi backend dibutuhkan untuk masuk.
+                  Koneksi server terputus/offline. Harap periksa jaringan Anda.
                 </span>
               </div>
               <button
@@ -265,7 +256,7 @@ export default function LoginPage() {
                 onClick={checkBackendHealth}
                 disabled={checkingHealth}
                 className="p-1.5 hover:bg-rose-100 rounded-lg transition-colors shrink-0"
-                title="Coba Cek Ulang Koneksi"
+                title="Cek Ulang Koneksi"
               >
                 <FiRefreshCw className={`w-4 h-4 ${checkingHealth ? "animate-spin" : ""}`} />
               </button>
