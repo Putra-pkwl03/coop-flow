@@ -1,17 +1,37 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "../../lib/axios";
 import Swal from "sweetalert2";
-import { FiBarChart2, FiUsers, FiTrendingUp } from "react-icons/fi";
+import { FiBarChart2, FiUsers, FiTrendingUp, FiWifiOff } from "react-icons/fi";
 
 export default function LoginPage() {
   const router = useRouter();
-  // Mengubah nama variabel state agar lebih representatif (bisa NIK / Email)
+  
+  // State Input & Process
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // State Status Internet
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+
+  // Monitoring koneksi internet pengguna
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   const Toast = Swal.mixin({
     toast: true,
@@ -28,6 +48,18 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validasi 1: Cek Koneksi Online
+    if (!isOnline) {
+      Swal.fire({
+        icon: "error",
+        title: "Koneksi Terputus",
+        text: "Proses autentikasi memerlukan koneksi internet. Harap periksa jaringan Anda lalu coba lagi.",
+        confirmButtonColor: "#005c27",
+      });
+      return;
+    }
+
+    // Validasi 2: Input Kosong
     if (!identifier || !password) {
       Toast.fire({
         icon: "warning",
@@ -38,7 +70,6 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      // Mengirimkan identifier baik ke key login_identifier maupun email agar kompatibel
       const response = await api.post("/login", {
         login_identifier: identifier,
         email: identifier,
@@ -53,8 +84,6 @@ export default function LoginPage() {
 
       // 2. Ambil semua role dari user
       const userRoles = user.roles?.map((r: any) => r.name) || [];
-      
-      // Ambil role utama (elemen pertama) untuk disimpan di cookie middleware
       const primaryRole = userRoles[0] || ""; 
 
       // 3. Simpan access_token DAN user_role ke Cookies agar terbaca oleh Middleware
@@ -66,7 +95,7 @@ export default function LoginPage() {
         title: "Login Berhasil! Selamat datang.",
       });
 
-      // 4. REDIRECT BERDASARKAN ROLE SEEDER
+      // 4. Redirect berdasarkan Role
       if (userRoles.includes("admin-lapangan")) {
         router.push("/dashboard/admin-lapangan");
       } else if (userRoles.includes("petugas-koperasi")) {
@@ -149,46 +178,33 @@ export default function LoginPage() {
 
         {/* 3. KONTEN BAWAH: Badges Statistics */}
         <div className="z-10 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-white/10 mt-20 md:mt-auto">
-          {/* Badge 1: Akurasi GIS */}
           <div className="flex items-center gap-3 bg-white/5 backdrop-blur-sm p-3.5 rounded-xl border border-white/5">
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm shrink-0">
               <FiBarChart2 className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
               <h4 className="text-lg font-bold leading-none text-white">98%</h4>
-              <p className="text-xs text-gray-300 mt-1 font-medium">
-                Akurasi GIS
-              </p>
+              <p className="text-xs text-gray-300 mt-1 font-medium">Akurasi GIS</p>
             </div>
           </div>
 
-          {/* Badge 2: Petani Aktif */}
           <div className="flex items-center gap-3 bg-white/5 backdrop-blur-sm p-3.5 rounded-xl border border-white/5">
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm shrink-0">
               <FiUsers className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <h4 className="text-lg font-bold leading-none text-white">
-                15K+
-              </h4>
-              <p className="text-xs text-gray-300 mt-1 font-medium">
-                Petani Aktif
-              </p>
+              <h4 className="text-lg font-bold leading-none text-white">15K+</h4>
+              <p className="text-xs text-gray-300 mt-1 font-medium">Petani Aktif</p>
             </div>
           </div>
 
-          {/* Badge 3: Monitoring */}
           <div className="flex items-center gap-3 bg-white/5 backdrop-blur-sm p-3.5 rounded-xl border border-white/5">
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm shrink-0">
               <FiTrendingUp className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h4 className="text-lg font-bold leading-none text-white">
-                24/7
-              </h4>
-              <p className="text-xs text-gray-300 mt-1 font-medium">
-                Monitoring
-              </p>
+              <h4 className="text-lg font-bold leading-none text-white">24/7</h4>
+              <p className="text-xs text-gray-300 mt-1 font-medium">Monitoring</p>
             </div>
           </div>
         </div>
@@ -199,6 +215,17 @@ export default function LoginPage() {
       {/* ========================================== */}
       <div className="w-full md:w-2/5 flex items-center justify-center p-6 md:p-10 bg-gray-50">
         <div className="w-full max-w-2xl bg-white p-8 md:p-12 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.07)] border border-gray-100">
+          
+          {/* Banner Peringatan Offline */}
+          {!isOnline && (
+            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-700 text-xs font-semibold animate-pulse">
+              <FiWifiOff className="text-lg shrink-0" />
+              <span>
+                Anda sedang <strong>offline</strong>. Koneksi internet dibutuhkan untuk masuk ke akun Anda.
+              </span>
+            </div>
+          )}
+
           <div className="flex flex-col items-center text-center mb-8">
             <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4 border border-green-100">
               <img
@@ -263,10 +290,18 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full py-4 bg-[#005c27] text-white font-bold rounded-full hover:bg-[#00421c] active:scale-[0.99] transition duration-200 uppercase tracking-wider text-xs shadow-md shadow-green-900/10"
+              disabled={loading || !isOnline}
+              className={`w-full py-4 text-white font-bold rounded-full transition duration-200 uppercase tracking-wider text-xs shadow-md ${
+                !isOnline
+                  ? "bg-gray-300 cursor-not-allowed shadow-none"
+                  : "bg-[#005c27] hover:bg-[#00421c] active:scale-[0.99] shadow-green-900/10"
+              }`}
             >
-              {loading ? "Memproses Masuk..." : "Sign In"}
+              {loading
+                ? "Memproses Masuk..."
+                : !isOnline
+                ? "Mode Offline (Butuh Internet)"
+                : "Sign In"}
             </button>
 
             <div className="relative flex py-3 items-center text-xs text-gray-400 uppercase font-semibold">
