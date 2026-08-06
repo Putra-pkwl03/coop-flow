@@ -63,22 +63,22 @@
 //     ];
 //   },
 // };
+
+
+
 import withPWAInit from 'next-pwa';
+import defaultCache from 'next-pwa/cache.js';
 
 const withPWA = withPWAInit({
   dest: 'public',
-  // Paksa selalu aktif di produksi
-  disable: process.env.NODE_ENV === 'development', 
+  disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
-  
-  // Ubah '/~offline' menjadi '/offline' agar tidak diblokir routing Next.js
   fallbacks: {
-    document: '/offline',
+    document: '/offline', // Hanya sebagai cadangan TERAKHIR jika halaman belum pernah dibuka sama sekali
   },
-
   runtimeCaching: [
-    // 1. Cache Tile Peta Spasial
+    // 1. Cache Tile Peta Spasial (Gunakan CacheFirst)
     {
       urlPattern: /^https?:\/\/(server\.arcgisonline\.com|.*\.tile\.openstreetmap\.org|.*\.basemaps\.cartocdn\.com|.*\.google\.com\/vt\/lyrs=.*)\/.*$/i,
       handler: 'CacheFirst',
@@ -86,6 +86,24 @@ const withPWA = withPWAInit({
         cacheName: 'spatial-map-tiles',
         expiration: {
           maxEntries: 1000,
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 hari
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+
+    // 2. 🌟 PERBAIKAN UTAMA: Caching Halaman / Dokumen Navigasi
+    // Gunakan 'NetworkFirst' agar saat offline, halaman yang PERNAH dibuka akan diambil dari Cache!
+    {
+      urlPattern: ({ request }) => request.mode === 'navigate',
+      handler: 'NetworkFirst', // 👈 Diubah dari StaleWhileRevalidate ke NetworkFirst
+      options: {
+        cacheName: 'pages-cache',
+        networkTimeoutSeconds: 3, // Jika koneksi lambat dalam 3 detik, langsung tampilkan versi cache
+        expiration: {
+          maxEntries: 64,
           maxAgeSeconds: 30 * 24 * 60 * 60,
         },
         cacheableResponse: {
@@ -94,57 +112,8 @@ const withPWA = withPWAInit({
       },
     },
 
-    // 2. Cache Navigasi / Dokumen Page
-    {
-      urlPattern: ({ request }) => request.mode === 'navigate',
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'pages-cache',
-        expiration: {
-          maxEntries: 64,
-          maxAgeSeconds: 24 * 60 * 60 * 30,
-        },
-      },
-    },
-
-    // 3. Cache Data Next.js
-    {
-      urlPattern: /\/_next\/data\/.*/i,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'next-data-cache',
-        expiration: {
-          maxEntries: 64,
-          maxAgeSeconds: 24 * 60 * 60 * 30,
-        },
-      },
-    },
-
-    // 4. Cache Asset Statis Next.js (JS, CSS)
-    {
-      urlPattern: /^https?:\/\/.*\/_next\/static\/.*/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'next-static-assets',
-        expiration: {
-          maxEntries: 128,
-          maxAgeSeconds: 24 * 60 * 60 * 30,
-        },
-      },
-    },
-
-    // 5. Cache Gambar
-    {
-      urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'image-assets',
-        expiration: {
-          maxEntries: 64,
-          maxAgeSeconds: 24 * 60 * 60 * 30,
-        },
-      },
-    },
+    // 3. Gabungkan Aturan Bawaan next-pwa (menangani JS, CSS, _next/data, dll.)
+    ...defaultCache,
   ],
 });
 
