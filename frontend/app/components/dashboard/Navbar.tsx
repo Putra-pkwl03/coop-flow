@@ -87,22 +87,44 @@ export default function Navbar({
     const roleFromCookie = getCookie("user_role");
     setCurrentRole(roleFromCookie);
 
-    if (typeof window !== "undefined") {
-      setIsOnline(navigator.onLine);
-    }
-
-    // Handler saat jaringan kembali online
-    const handleOnline = async () => {
-      setIsOnline(true);
-      // Cek apakah ada data di queue sebelum melakukan trigger sync + reload
-      try {
-        const queueCount = await db.syncQueue.count();
-        if (queueCount > 0) {
-          await executeSyncAndReload();
-        }
-      } catch (err) {
-        console.error("Gagal mengecek antrean sync saat online:", err);
+    // 1. Fungsi Cek Koneksi Aktual (Ping Server dengan Fallback Navigator)
+    const checkActualConnection = async () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setIsOnline(false);
+        return;
       }
+
+      try {
+        const response = await fetch(`/api/health?t=${Date.now()}`, {
+          method: "HEAD",
+          cache: "no-store",
+        });
+
+        const onlineStatus = response.ok;
+
+        setIsOnline((prevOnline) => {
+          // Jika status berubah dari OFFLINE ke ONLINE, cek antrean dan trigger sync
+          if (!prevOnline && onlineStatus) {
+            db.syncQueue.count().then((queueCount) => {
+              if (queueCount > 0) {
+                executeSyncAndReload();
+              }
+            }).catch((err) => console.error("Gagal membaca syncQueue:", err));
+          }
+          return onlineStatus;
+        });
+      } catch (err) {
+        // Fallback jika /api/health tidak merespons/belum ada: percaya pada navigator.onLine
+        setIsOnline(navigator.onLine);
+      }
+    };
+
+    // Jalankan pengecekan koneksi saat komponen di-mount
+    checkActualConnection();
+
+    // 2. Handler Event Browser
+    const handleOnline = async () => {
+      await checkActualConnection();
     };
 
     const handleOffline = () => {
@@ -112,7 +134,7 @@ export default function Navbar({
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Update interval untuk membaca jumlah data tertunda
+    // 3. Interval Update Jumlah Data Tertunda & Periodic Health Check
     const updateSyncCount = async () => {
       try {
         const count = await db.syncQueue.count();
@@ -123,8 +145,14 @@ export default function Navbar({
     };
 
     updateSyncCount();
-    const intervalId = setInterval(updateSyncCount, 2000);
+    
+    // Timer interval gabungan (Setiap 3 detik update jumlah queue, sekaligus re-check koneksi)
+    const intervalId = setInterval(() => {
+      updateSyncCount();
+      checkActualConnection();
+    }, 5000);
 
+    // 4. Click Outside Dropdown
     function handleClickOutside(event: MouseEvent) {
       if (
         dropdownRef.current &&
@@ -141,7 +169,7 @@ export default function Navbar({
       window.removeEventListener("mousedown", handleClickOutside);
       clearInterval(intervalId);
     };
-  }, [executeSyncAndReload]);
+  }, []); // Dependency array kosong [] agar lifecycle stabil dan interval tidak terduplikasi
 
   // Handler Klik Tombol Manual
   const handleManualSyncClick = async () => {
