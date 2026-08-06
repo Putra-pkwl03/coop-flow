@@ -16,7 +16,7 @@ export interface FarmerGroup {
 }
 
 export interface Farmer {
-  id: number | string; // Gunakan 'temp_xxx' jika dibuat saat offline
+  id: number | string;
   user_id?: number | null; // Nullable saat offline baru
   
   // Data Akun User (Penting untuk pendaftaran Petani Baru)
@@ -27,7 +27,7 @@ export interface Farmer {
 
   // Data Profile Farmer
   farmer_group_id?: number | null;
-  nik: string;
+  nik?: string | null;
   province_id?: string | null;
   city_id?: string | null;
   district_id?: string | null;

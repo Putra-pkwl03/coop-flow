@@ -6,53 +6,22 @@ import { FiPlus, FiMinus, FiMaximize2, FiMinimize2, FiLayers, FiMapPin } from 'r
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-interface Plant {
-  id: number;
-  land_id: number;
-  name: string;
-}
-
-interface Land {
-  id: number;
-  farmer_id: number;
-  land_name: string;
-  area: string | number;
-  location_address: string | null;
-  polygon_coordinates: [number, number][];
-  plants?: Plant[];
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  phone: string | null;
-  address: string | null;
-}
-
-interface Farmer {
-  id: number;
-  user_id: number;
-  farmer_group_id: number;
-  nik: string | null;
-  total_land_area: string | number;
-  notes: string | null;
-  user?: User;
-  lands?: Land[];
-}
+// 1. Import tipe Farmer langsung dari db.ts (Hapus interface lokal)
+import { Farmer } from '../../lib/db';
 
 interface MapComponentProps {
   farmers: Farmer[];
 }
 
 // Fungsi pembantu untuk menghasilkan warna acak yang konsisten berdasarkan ID Petani
-function getFarmerColor(farmerId: number): string {
+function getFarmerColor(farmerId: number | string): string {
+  const numericId = typeof farmerId === 'number' ? farmerId : String(farmerId).length;
   const colors = [
     '#10b981', '#3b82f6', '#f59e0b', '#ef4444', 
     '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', 
     '#f97316', '#6366f1'
   ];
-  return colors[farmerId % colors.length];
+  return colors[numericId % colors.length];
 }
 
 // Helper untuk mengambil titik tengah (Centroid) dari koordinat poligon
@@ -104,7 +73,7 @@ function CustomControls({ containerId }: { containerId: string }) {
   }, [map]);
 
   return (
-    <div className="absolute top-4 right-4 z-400 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-zinc-200 p-1 flex flex-col gap-1.5">
+    <div className="absolute top-4 right-4 z-[400] bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-zinc-200 p-1 flex flex-col gap-1.5">
       <button 
         onClick={() => map.zoomIn()}
         className="w-9 h-9 flex items-center justify-center rounded-xl text-zinc-700 hover:bg-zinc-100 active:scale-95 transition"
@@ -134,7 +103,6 @@ export default function MapComponent({ farmers }: MapComponentProps) {
   const allBounds: [number, number][] = [];
   const [activeLayer, setActiveLayer] = useState<'esri' | 'google'>('esri');
 
-  // Generator icon peta kustom dinamis memanfaatkan SVG `FiMapPin` bawaan lucide
   const createCustomIcon = (color: string) => {
     return L.divIcon({
       html: `<div style="color: ${color}; filter: drop-shadow(0px 2px 5px rgba(0,0,0,0.3));" class="animate-bounce-short">
@@ -177,16 +145,14 @@ export default function MapComponent({ farmers }: MapComponentProps) {
         )}
 
         {farmers.map((farmer) => {
-          // Ambil warna unik khusus untuk petani ini
           const farmerColor = getFarmerColor(farmer.id);
 
           return farmer.lands?.map((land) => {
             if (!land.polygon_coordinates || !Array.isArray(land.polygon_coordinates)) return null;
 
-            land.polygon_coordinates.forEach((coord) => allBounds.push(coord));
+            land.polygon_coordinates.forEach((coord: [number, number]) => allBounds.push(coord));
             const centerPoint = getPolygonCenter(land.polygon_coordinates);
 
-            // Template Popup
             const popupContent = (
               <div className="font-sans text-zinc-800 p-2 min-w-55 max-w-65">
                 <div className="flex items-center gap-1.5 pb-2 border-b border-zinc-100 mb-2">
@@ -196,7 +162,7 @@ export default function MapComponent({ farmers }: MapComponentProps) {
                   <h4 className="font-bold text-sm text-zinc-900 m-0 leading-tight">{land.land_name}</h4>
                 </div>
                 <div className="space-y-1.5 text-xs text-zinc-600">
-                  <div className="flex justify-between"><span className="text-zinc-400">Pemilik:</span> <span className="font-semibold text-zinc-900">{farmer.user?.name || '-'}</span></div>
+                  <div className="flex justify-between"><span className="text-zinc-400">Pemilik:</span> <span className="font-semibold text-zinc-900">{farmer.name || farmer.user?.name || '-'}</span></div>
                   <div className="flex justify-between"><span className="text-zinc-400">Luas Lahan:</span> <span className="font-semibold text-zinc-900 bg-zinc-50 px-1.5 py-0.2 rounded font-mono" style={{ color: farmerColor }}>{land.area} Ha</span></div>
                   <div className="flex flex-col pt-1 border-t border-zinc-50">
                     <span className="text-zinc-400">Alamat Lokasi:</span>
@@ -208,7 +174,6 @@ export default function MapComponent({ farmers }: MapComponentProps) {
 
             return (
               <div key={land.id}>
-                {/* 1. Gambar Poligon Lahan dengan warna dinamis per petani */}
                 <Polygon
                   positions={land.polygon_coordinates}
                   pathOptions={{
@@ -222,7 +187,6 @@ export default function MapComponent({ farmers }: MapComponentProps) {
                   <Popup>{popupContent}</Popup>
                 </Polygon>
 
-                {/* 2. Marker Pin Peta Hidup menggantikan CircleMarker */}
                 <Marker
                   position={centerPoint}
                   icon={createCustomIcon(farmerColor)}
@@ -238,7 +202,6 @@ export default function MapComponent({ farmers }: MapComponentProps) {
         <CustomControls containerId="gis-map-wrapper" />
       </MapContainer>
 
-      {/* Tombol Ganti Layer Melayang di Kiri Bawah */}
       <div className="absolute bottom-4 left-4 z-[400]">
         <button
           onClick={() => setActiveLayer(activeLayer === 'esri' ? 'google' : 'esri')}

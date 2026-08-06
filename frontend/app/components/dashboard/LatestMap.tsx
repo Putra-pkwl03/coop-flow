@@ -3,43 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import api from '../../lib/axios';
-import { db } from '../../lib/db'; // Import Dexie DB jika Anda menggunakan IndexedDB untuk menyimpan cache offline
+import { db, Farmer } from '../../lib/db';
 
-interface Plant {
-  id: number;
-  land_id: number;
-  name: string;
-}
 
-interface Land {
-  id: number;
-  farmer_id: number;
-  land_name: string;
-  area: string | number;
-  location_address: string | null;
-  polygon_coordinates: [number, number][];
-  plants?: Plant[];
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  phone: string | null;
-  address: string | null;
-}
-
-// Sesuaikan interface Farmer di LatestMap.tsx agar persis dengan lib/db.ts
-interface Farmer {
-  id: number | string;       // 🌟 Ubah jadi number | string
-  user_id: number | null;
-  farmer_group_id?: number | null;
-  nik: string | null;        // 🌟 Pastikan ada | null
-  total_land_area: string | number | null;
-  notes?: string | null;
-  user?: User;
-  lands?: Land[];
-}
 
 interface ApiResponse {
   success: boolean;
@@ -74,7 +40,7 @@ export default function LatestMap() {
     setTotalLands(count);
 
     const area = dataFarmers.reduce((acc, farmer) => {
-      const farmerLandsArea = farmer.lands?.reduce((landAcc, land) => landAcc + parseFloat((land.area as string) || '0'), 0) || 0;
+     const farmerLandsArea = farmer.lands?.reduce((landAcc, land) => landAcc + parseFloat(String(land.area || 0)), 0) || 0;
       return acc + farmerLandsArea;
     }, 0);
     setTotalArea(parseFloat(area.toFixed(2)));
