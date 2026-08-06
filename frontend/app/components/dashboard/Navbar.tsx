@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   FaBell,
@@ -50,29 +50,59 @@ export default function Navbar({
 }: NavbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [currentRole, setCurrentRole] = useState<string>("");
-  
-  // Mencegah mismatch hydration: default awal true, lalu dicek pasti di client mount
+
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [isMounted, setIsMounted] = useState<boolean>(false);
-  
+
   const [pendingSyncCount, setPendingSyncCount] = useState<number>(0);
-  const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 1. Inisialisasi status koneksi & listener jaringan
+  // Fungsi eksekusi sinkronisasi + reload halaman
+  const executeSyncAndReload = useCallback(async () => {
+    if (typeof window === "undefined" || !navigator.onLine) return;
+
+    try {
+      setIsSyncing(true);
+      
+      // 1. Jalankan engine sinkronisasi
+      await syncOfflineData();
+      
+      // 2. Perbarui hitungan lokal
+      const count = await db.syncQueue.count();
+      setPendingSyncCount(count);
+
+      // 3. Reload halaman secara penuh untuk menyegarkan seluruh tabel/state UI
+      window.location.reload();
+    } catch (error) {
+      console.error("Gagal melakukan sinkronisasi data:", error);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
+
+  // Listener koneksi & antrean data
   useEffect(() => {
     setIsMounted(true);
     const roleFromCookie = getCookie("user_role");
     setCurrentRole(roleFromCookie);
 
-    // Dapatkan status aktual dari browser saat ini
     if (typeof window !== "undefined") {
       setIsOnline(navigator.onLine);
     }
 
-    const handleOnline = () => {
+    // Handler saat jaringan kembali online
+    const handleOnline = async () => {
       setIsOnline(true);
-      handleTriggerSync();
+      // Cek apakah ada data di queue sebelum melakukan trigger sync + reload
+      try {
+        const queueCount = await db.syncQueue.count();
+        if (queueCount > 0) {
+          await executeSyncAndReload();
+        }
+      } catch (err) {
+        console.error("Gagal mengecek antrean sync saat online:", err);
+      }
     };
 
     const handleOffline = () => {
@@ -82,7 +112,7 @@ export default function Navbar({
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Fungsi pembaru antrean sync di IndexedDB (Dexie)
+    // Update interval untuk membaca jumlah data tertunda
     const updateSyncCount = async () => {
       try {
         const count = await db.syncQueue.count();
@@ -93,7 +123,7 @@ export default function Navbar({
     };
 
     updateSyncCount();
-    const intervalId = setInterval(updateSyncCount, 2500);
+    const intervalId = setInterval(updateSyncCount, 2000);
 
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -111,22 +141,12 @@ export default function Navbar({
       window.removeEventListener("mousedown", handleClickOutside);
       clearInterval(intervalId);
     };
-  }, []);
+  }, [executeSyncAndReload]);
 
-  // Handler Sinkronisasi Data Manual
-  const handleTriggerSync = async () => {
-    if (typeof window === "undefined" || !navigator.onLine || isManualSyncing) return;
-    
-    setIsManualSyncing(true);
-    try {
-      await syncOfflineData();
-      const count = await db.syncQueue.count();
-      setPendingSyncCount(count);
-    } catch (error) {
-      console.error("Sinkronisasi gagal:", error);
-    } finally {
-      setIsManualSyncing(false);
-    }
+  // Handler Klik Tombol Manual
+  const handleManualSyncClick = async () => {
+    if (!isOnline || pendingSyncCount === 0 || isSyncing) return;
+    await executeSyncAndReload();
   };
 
   const isMandatoryFullLayout =
@@ -140,6 +160,9 @@ export default function Navbar({
   const headerBgClass = isMandatoryFullLayout
     ? "bg-[#107349] border-b border-green-700 text-white"
     : "bg-white border-2 border-b border-slate-200 shadow-md shadow-green-800/80 text-slate-800";
+
+  // Kondisi Tombol Aktif
+  const isSyncAllowed = isOnline && pendingSyncCount > 0 && !isSyncing;
 
   return (
     <header
@@ -175,38 +198,38 @@ export default function Navbar({
         {/* Indikator Sinkronisasi Dinamis (Khusus Admin Lapangan) */}
         {currentRole === "admin-lapangan" && isMounted && (
           <button
-            onClick={handleTriggerSync}
-            disabled={!isOnline || isManualSyncing}
+            onClick={handleManualSyncClick}
+            disabled={!isSyncAllowed}
             className={`hidden lg:flex items-center space-x-2.5 px-3.5 py-1.5 rounded-xl border transition-all text-left ${
               !isOnline
-                ? "bg-red-500/20 border-red-400/40 text-red-100 cursor-not-allowed"
+                ? "bg-red-500/20 border-red-400/40 text-red-200 cursor-not-allowed opacity-80"
                 : pendingSyncCount > 0
-                ? "bg-amber-500/25 border-amber-300/50 text-amber-100 hover:bg-amber-500/35 cursor-pointer shadow-sm"
-                : "bg-emerald-800/40 border-emerald-600/30 text-emerald-100"
+                ? "bg-amber-500/30 border-amber-300/60 text-amber-100 hover:bg-amber-500/40 cursor-pointer shadow-md"
+                : "bg-emerald-800/40 border-emerald-600/30 text-emerald-100 cursor-default"
             }`}
             title={
               !isOnline
-                ? "Koneksi terputus (Offline)"
+                ? "Mode Offline - Tidak dapat melakukan sinkronisasi"
                 : pendingSyncCount > 0
-                ? "Klik untuk sinkronisasi data ke server"
+                ? "Klik untuk sinkronkan data ke server & perbarui halaman"
                 : "Semua data tersinkron sempurna"
             }
           >
-            {/* Icon Status */}
-            {isManualSyncing ? (
+            {/* Icon Status Dinamis */}
+            {isSyncing ? (
               <FaSyncAlt className="animate-spin text-amber-300 text-base" />
             ) : !isOnline ? (
-              <FaExclamationTriangle className="text-red-300 text-base animate-pulse" />
+              <FaExclamationTriangle className="text-red-300 text-base" />
             ) : pendingSyncCount > 0 ? (
               <FaCloudUploadAlt className="text-amber-300 text-lg animate-bounce" />
             ) : (
               <FaWifi className="text-emerald-300 text-base" />
             )}
 
-            {/* Label Status */}
+            {/* Label Status Dinamis */}
             <div className="leading-tight">
               <p className="text-[11px] font-bold flex items-center gap-1.5">
-                <span>{isOnline ? "Online" : "Offline"}</span>
+                <span>{isOnline ? "Mode Online" : "Mode Offline"}</span>
                 {pendingSyncCount > 0 && (
                   <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-extrabold">
                     {pendingSyncCount}
@@ -214,10 +237,12 @@ export default function Navbar({
                 )}
               </p>
               <p className="text-[10px] opacity-80">
-                {!isOnline
+                {isSyncing
+                  ? "Menyinkronkan..."
+                  : !isOnline
                   ? `${pendingSyncCount} data tersimpan lokal`
                   : pendingSyncCount > 0
-                  ? `${pendingSyncCount} data belum tersinkron`
+                  ? "Klik untuk Sync Data"
                   : "Semua data tersinkron"}
               </p>
             </div>
