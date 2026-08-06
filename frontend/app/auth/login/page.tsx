@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import api from "../../lib/axios";
 import Swal from "sweetalert2";
-import { FiBarChart2, FiUsers, FiTrendingUp, FiWifiOff } from "react-icons/fi";
+import { FiBarChart2, FiUsers, FiTrendingUp, FiWifiOff, FiRefreshCw } from "react-icons/fi";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,24 +14,57 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   
-  // State Status Internet
+  // State Status Koneksi Backend
   const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [checkingHealth, setCheckingHealth] = useState<boolean>(false);
 
-  // Monitoring koneksi internet pengguna
+  // Function Pengecekan Health Check Ke Backend
+  const checkBackendHealth = useCallback(async () => {
+    // Jika browser terindikasi offline secara hardware, langsung set false tanpa hit API
+    if (typeof window !== "undefined" && !navigator.onLine) {
+      setIsOnline(false);
+      return false;
+    }
+
+    try {
+      setCheckingHealth(true);
+      // Ganti '/health' atau '/ping' sesuai endpoint health check backend Anda
+      // Gunakan timeout singkat (misal 4 detik) agar UI tidak hung lama
+      await api.get("/health", { timeout: 4000 });
+      setIsOnline(true);
+      return true;
+    } catch (error) {
+      // Jika terjadi error network/timeout/500, tandai sebagai Offline
+      setIsOnline(false);
+      return false;
+    } finally {
+      setCheckingHealth(false);
+    }
+  }, []);
+
+  // Monitoring koneksi: Pengecekan Awal + Periodic Interval + Browser Event Listener
   useEffect(() => {
-    setIsOnline(navigator.onLine);
+    // 1. Cek kesehatan server saat halaman pertama dibuka
+    checkBackendHealth();
 
-    const handleOnline = () => setIsOnline(true);
+    // 2. Listener event jaringan bawaan browser
+    const handleOnline = () => checkBackendHealth();
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
+    // 3. Ping berkala setiap 15 detik untuk memantau status server secara real-time
+    const interval = setInterval(() => {
+      checkBackendHealth();
+    }, 15000);
+
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      clearInterval(interval);
     };
-  }, []);
+  }, [checkBackendHealth]);
 
   const Toast = Swal.mixin({
     toast: true,
@@ -48,18 +81,20 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validasi 1: Cek Koneksi Online
-    if (!isOnline) {
+    // Re-verify kesehatan server sekali lagi tepat sebelum melayangkan request login
+    const isServerAlive = await checkBackendHealth();
+
+    if (!isServerAlive) {
       Swal.fire({
         icon: "error",
         title: "Koneksi Terputus",
-        text: "Proses autentikasi memerlukan koneksi internet. Harap periksa jaringan Anda lalu coba lagi.",
+        text: "Tidak dapat terhubung ke server backend. Harap periksa jaringan internet Anda dan pastikan server beroperasi.",
         confirmButtonColor: "#005c27",
       });
       return;
     }
 
-    // Validasi 2: Input Kosong
+    // Validasi Input Kosong
     if (!identifier || !password) {
       Toast.fire({
         icon: "warning",
@@ -216,13 +251,24 @@ export default function LoginPage() {
       <div className="w-full md:w-2/5 flex items-center justify-center p-6 md:p-10 bg-gray-50">
         <div className="w-full max-w-2xl bg-white p-8 md:p-12 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.07)] border border-gray-100">
           
-          {/* Banner Peringatan Offline */}
+          {/* Banner Peringatan Offline (Berdasarkan Hasil Health Check) */}
           {!isOnline && (
-            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-700 text-xs font-semibold animate-pulse">
-              <FiWifiOff className="text-lg shrink-0" />
-              <span>
-                Anda sedang <strong>offline</strong>. Koneksi internet dibutuhkan untuk masuk ke akun Anda.
-              </span>
+            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-700 text-xs font-semibold">
+              <div className="flex items-center gap-3">
+                <FiWifiOff className="text-lg shrink-0" />
+                <span>
+                  Server terdeteksi <strong>offline</strong>. Koneksi backend dibutuhkan untuk masuk.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={checkBackendHealth}
+                disabled={checkingHealth}
+                className="p-1.5 hover:bg-rose-100 rounded-lg transition-colors shrink-0"
+                title="Coba Cek Ulang Koneksi"
+              >
+                <FiRefreshCw className={`w-4 h-4 ${checkingHealth ? "animate-spin" : ""}`} />
+              </button>
             </div>
           )}
 
@@ -290,7 +336,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || !isOnline}
+              disabled={loading || !isOnline || checkingHealth}
               className={`w-full py-4 text-white font-bold rounded-full transition duration-200 uppercase tracking-wider text-xs shadow-md ${
                 !isOnline
                   ? "bg-gray-300 cursor-not-allowed shadow-none"
@@ -299,6 +345,8 @@ export default function LoginPage() {
             >
               {loading
                 ? "Memproses Masuk..."
+                : checkingHealth
+                ? "Memeriksa Koneksi..."
                 : !isOnline
                 ? "Mode Offline (Butuh Internet)"
                 : "Sign In"}
