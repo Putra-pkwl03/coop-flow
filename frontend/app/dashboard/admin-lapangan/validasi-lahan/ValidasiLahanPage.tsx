@@ -101,57 +101,82 @@ export default function ValidasiLahanPage() {
   const [areaHectares, setAreaHectares] = useState('0');
   const [polygonCoordinates, setPolygonCoordinates] = useState<[number, number][]>([]);
 
-  // 1. MONITOR KONEKSI INTERNET SECARA REAL-TIME
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+// 1. MONITOR KONEKSI INTERNET SECARA REAL-TIME & AUTO-SYNC
+useEffect(() => {
+  if (typeof window === 'undefined') return;
 
-    const checkActualConnection = async () => {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        setIsOnline(false);
-        return;
-      }
+  const triggerSync = async () => {
+    const synced = await syncOfflineData();
+    if (synced) {
+      await fetchFarmers(); // Perbarui UI & IndexedDB setelah backend terupdate
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: '🔄 Data offline berhasil disinkronkan ke server!',
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
+  };
 
-      try {
-        const response = await fetch(`/api/health?t=${Date.now()}`, { 
-          method: 'HEAD',
-          cache: 'no-store'
-        });
-        
-        if (response.ok) {
-          setIsOnline(true);
-        } else {
-          setIsOnline(false);
-        }
-      } catch (err) {
-        setIsOnline(false);
-      }
-    };
-
-    checkActualConnection();
-
-    const handleOnline = async () => {
-      await checkActualConnection();
-      if (typeof navigator !== 'undefined' && navigator.onLine) {
-        await syncOfflineData();
-        await fetchFarmers();
-      }
-    };
-
-    const handleOffline = () => {
+  const checkActualConnection = async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setIsOnline(false);
-    };
+      return;
+    }
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    try {
+      const response = await fetch(`/api/health?t=${Date.now()}`, { 
+        method: 'HEAD',
+        cache: 'no-store'
+      });
+      
+      if (response.ok) {
+        if (!isOnline) {
+          // Baru saja kembali online -> Jalankan sync
+          await triggerSync();
+        }
+        setIsOnline(true);
+      } else {
+        setIsOnline(false);
+      }
+    } catch (err) {
+      setIsOnline(false);
+    }
+  };
 
-    const intervalId = setInterval(checkActualConnection, 5000);
+  checkActualConnection();
 
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      clearInterval(intervalId);
-    };
-  }, []);
+  const handleOnline = async () => {
+    setIsOnline(true);
+    await triggerSync();
+  };
+
+  const handleOffline = () => {
+    setIsOnline(false);
+  };
+
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+
+  // Cek koneksi & sync setiap 10 detik
+  const intervalId = setInterval(async () => {
+    await checkActualConnection();
+    if (navigator.onLine) {
+      await triggerSync();
+    }
+  }, 10000);
+
+  return () => {
+    window.removeEventListener('online', handleOnline);
+    window.removeEventListener('offline', handleOffline);
+    clearInterval(intervalId);
+  };
+}, [isOnline]);
+
+
+
 
   useEffect(() => {
     if (isReMappingRef.current) {
