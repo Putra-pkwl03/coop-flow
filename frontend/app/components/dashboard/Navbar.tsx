@@ -240,7 +240,7 @@ export default function Navbar({
                 ? "bg-red-500/20 border-red-400/40 text-red-200 cursor-not-allowed opacity-80"
                 : pendingSyncCount > 0
                 ? "bg-amber-500/30 border-amber-300/60 text-amber-100 hover:bg-amber-500/40 cursor-pointer shadow-md"
-                : "bg-emerald-800/40 border-emerald-600/30 text-emerald-100 cursor-default"
+                : "bg-gray-200/80 border-gray-200/80 text-emerald-100 cursor-default"
             }`}
             title={
               !isOnline
