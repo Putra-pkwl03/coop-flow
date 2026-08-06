@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import api from '../../lib/axios';
+import { db } from '../../lib/db'; // Import Dexie DB jika Anda menggunakan IndexedDB untuk menyimpan cache offline
 
 interface Plant {
   id: number;
@@ -28,13 +29,14 @@ interface User {
   address: string | null;
 }
 
+// Sesuaikan interface Farmer di LatestMap.tsx agar persis dengan lib/db.ts
 interface Farmer {
-  id: number;
-  user_id: number;
-  farmer_group_id: number;
-  nik: string | null;
-  total_land_area: string | number;
-  notes: string | null;
+  id: number | string;       // 🌟 Ubah jadi number | string
+  user_id: number | null;
+  farmer_group_id?: number | null;
+  nik: string | null;        // 🌟 Pastikan ada | null
+  total_land_area: string | number | null;
+  notes?: string | null;
   user?: User;
   lands?: Land[];
 }
@@ -59,45 +61,126 @@ export default function LatestMap() {
   const [totalArea, setTotalArea] = useState<number>(0);
   const [totalFarmers, setTotalFarmers] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
+  
+  // State Status Koneksi
+  const [isOnline, setIsOnline] = useState<boolean>(true);
 
-  useEffect(() => {
-    const fetchFarmerLands = async () => {
+  // Helper untuk memproses kalkulasi angka
+  const processFarmersData = (dataFarmers: Farmer[]) => {
+    setFarmers(dataFarmers);
+    setTotalFarmers(dataFarmers.length);
+
+    const count = dataFarmers.reduce((acc, farmer) => acc + (farmer.lands?.length || 0), 0);
+    setTotalLands(count);
+
+    const area = dataFarmers.reduce((acc, farmer) => {
+      const farmerLandsArea = farmer.lands?.reduce((landAcc, land) => landAcc + parseFloat((land.area as string) || '0'), 0) || 0;
+      return acc + farmerLandsArea;
+    }, 0);
+    setTotalArea(parseFloat(area.toFixed(2)));
+  };
+
+  const fetchFarmerLands = async () => {
+    setLoading(true);
+
+    // Cek koneksi nyata
+    const onlineStatus = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    setIsOnline(onlineStatus);
+
+    if (onlineStatus) {
       try {
         const response = await api.get<ApiResponse>('/farmers');
         if (response.data && response.data.success) {
           const dataFarmers = response.data.data;
-          setFarmers(dataFarmers);
-          setTotalFarmers(dataFarmers.length);
-          
-          const count = dataFarmers.reduce((acc, farmer) => acc + (farmer.lands?.length || 0), 0);
-          setTotalLands(count);
+          processFarmersData(dataFarmers);
 
-          const area = dataFarmers.reduce((acc, farmer) => {
-            const farmerLandsArea = farmer.lands?.reduce((landAcc, land) => landAcc + parseFloat(land.area as string || '0'), 0) || 0;
-            return acc + farmerLandsArea;
-          }, 0);
-          setTotalArea(parseFloat(area.toFixed(2)));
+          // Simpan ke IndexedDB sebagai cache lokal untuk mode offline
+          if (db?.farmers) {
+            await db.farmers.clear();
+            await db.farmers.bulkPut(dataFarmers);
+          }
         }
       } catch (error) {
-        console.error("Gagal memuat peta data lahan:", error);
+        console.error("Gagal fetching online, mencoba ambil data lokal:", error);
+        await loadFromLocalCache();
       } finally {
         setLoading(false);
       }
+    } else {
+      // Mode Offline: Ambil dari Cache IndexedDB
+      await loadFromLocalCache();
+      setLoading(false);
+    }
+  };
+
+  const loadFromLocalCache = async () => {
+    try {
+      if (db?.farmers) {
+        const localFarmers = await db.farmers.toArray();
+        if (localFarmers.length > 0) {
+          processFarmersData(localFarmers);
+          console.log("[Offline] Data berhasil dimuat dari IndexedDB");
+        }
+      }
+    } catch (err) {
+      console.error("Gagal membaca cache lokal:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchFarmerLands();
+
+    // Event Listener untuk mendeteksi perubahan jaringan secara real-time
+    const handleOnline = () => {
+      setIsOnline(true);
+      fetchFarmerLands(); // Refresh data saat koneksi kembali
     };
 
-    fetchFarmerLands();
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   return (
     <div className="bg-white p-5 rounded-3xl border border-zinc-100 shadow-sm flex flex-col justify-between h-full">
       <div>
         <div className="flex justify-between items-center pb-3">
-          <h3 className="text-sm font-bold text-zinc-800">
-            Peta Sebaran Lahan & Kebutuhan
-          </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Visualisasi klaster spasial terdaftar
-          </p>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h3 className="text-sm font-bold text-zinc-800">
+                Peta Sebaran Lahan & Kebutuhan
+              </h3>
+
+              {/* INDIKATOR STATUS ONLINE / OFFLINE */}
+              <span
+                className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all ${
+                  isOnline
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
+                }`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    isOnline ? 'bg-emerald-500' : 'bg-amber-500'
+                  }`}
+                />
+                <span>{isOnline ? 'Online' : 'Offline Mode'}</span>
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-400 mt-0.5">
+              Visualisasi klaster spasial terdaftar
+            </p>
+          </div>
+
           <div className="text-[10px] text-zinc-800 font-medium flex items-center space-x-2">
             <span>+ Min: 1x</span>
             <span className="text-zinc-200">•</span>
@@ -112,7 +195,7 @@ export default function LatestMap() {
 
       {/* FOOTER INFORMASI */}
       <div className="flex flex-wrap items-center justify-between gap-y-2 mt-4 pt-3 border-t border-zinc-100">
-        {/* Sisi Kiri: Status Lahan (Didekatkan menggunakan flex space-x-4) */}
+        {/* Sisi Kiri: Status Lahan */}
         <div className="flex items-center space-x-5">
           <div>
             <div className="flex items-center space-x-1.5">
@@ -139,7 +222,7 @@ export default function LatestMap() {
           </div>
         </div>
 
-        {/* Sisi Kanan: Info Tambahan Berdasarkan Data API */}
+        {/* Sisi Kanan: Info Tambahan */}
         <div className="flex items-center space-x-5 text-right">
           <div>
             <span className="text-[10px] font-bold text-zinc-500 block uppercase tracking-wider">
