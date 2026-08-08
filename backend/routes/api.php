@@ -107,6 +107,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // 5. Laporan
         Route::get('/laporan/summary', [LaporanController::class, 'getSummaryLaporan']);
+        Route::get('/laporan/details', [LaporanController::class, 'getDetailsLaporan']);
     });
 
     /*
