@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   FaReceipt, 
   FaCalendarAlt, 
@@ -9,7 +10,7 @@ import {
   FaChevronRight, 
   FaTimes, 
   FaBoxOpen,
-  FaPrint
+  FaArrowLeft
 } from 'react-icons/fa';
 
 interface ItemSummary {
@@ -36,6 +37,7 @@ interface TransactionsViewProps {
 }
 
 export default function TransactionsView({ transactions }: TransactionsViewProps) {
+  const router = useRouter();
   const [selectedTx, setSelectedTx] = useState<TransactionItem | null>(null);
 
   // Format ke Rupiah
@@ -61,17 +63,26 @@ export default function TransactionsView({ transactions }: TransactionsViewProps
 
   return (
     <div className="space-y-4 font-sans">
-      {/* Header View */}
-      <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80 flex items-center justify-between">
-        <div>
-          <h1 className="text-base font-black text-slate-900 flex items-center gap-2">
-            <FaReceipt className="text-emerald-600" /> Nota & Transaksi
-          </h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
-            Riwayat pembelian pupuk di KDKMP
-          </p>
+      {/* Header View dengan Tombol Back */}
+      <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => router.back()}
+            className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 transition active:scale-95 flex items-center justify-center shrink-0 cursor-pointer"
+            aria-label="Kembali"
+          >
+            <FaArrowLeft className="text-xs" />
+          </button>
+          <div>
+            <h1 className="text-base font-black text-slate-900 flex items-center gap-2">
+              <FaReceipt className="text-emerald-600" /> Nota & Transaksi
+            </h1>
+            <p className="text-xs font-medium text-slate-500 mt-0.5">
+              Riwayat pembelian pupuk di KDKMP
+            </p>
+          </div>
         </div>
-        <span className="bg-emerald-50 text-emerald-700 font-bold text-xs px-3 py-1 rounded-full border border-emerald-200">
+        <span className="bg-emerald-50 text-emerald-700 font-bold text-xs px-3 py-1 rounded-full border border-emerald-200 shrink-0">
           {transactions.length} Nota
         </span>
       </div>
