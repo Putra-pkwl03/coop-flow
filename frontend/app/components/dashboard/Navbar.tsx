@@ -227,11 +227,10 @@ export default function Navbar({
           </button>
         </div>
       )}
-
-      {/* Kanan Navbar */}
+{/* Kanan Navbar */}
       <div className="flex items-center space-x-5">
-        {/* Indikator Sinkronisasi Dinamis */}
-        {currentRole === "admin-lapangan" && isMounted && (
+        {/* Indikator Sinkronisasi Dinamis (Admin Lapangan & Petani) */}
+        {["admin-lapangan", "petani"].includes(currentRole) && isMounted && (
           <button
             onClick={handleManualSyncClick}
             disabled={!isSyncAllowed}

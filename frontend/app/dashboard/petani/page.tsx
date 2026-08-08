@@ -1,9 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaHome, FaMapMarkedAlt, FaSeedling, FaReceipt } from 'react-icons/fa';
+import { FaHome, FaMapMarkedAlt, FaSeedling, FaReceipt, FaWifi, FaExclamationTriangle } from 'react-icons/fa';
+import Swal from 'sweetalert2';
 import api from '@/app/lib/axios';
+
+// 🌟 DEXIE DB & SYNC ENGINE
+import { db, FarmerDashboardCache } from '@/app/lib/db';
+import { syncOfflineData } from '@/app/lib/syncEngine';
+
 import FarmerHeader from '@/app/components/dashboard/petani/PetaniHeaderWeather';
 import SummaryCards from '@/app/components/dashboard/petani/SummaryCards';
 import QuickMenu from '@/app/components/dashboard/petani/QuickActions';
@@ -59,7 +65,6 @@ function DashboardSkeleton() {
   );
 }
 
-// 1. Pindahkan logika utama ke dalam inner component
 function PetaniDashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -71,68 +76,226 @@ function PetaniDashboardContent() {
   const [transactionsData, setTransactionsData] = useState<Array<any>>([]); 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // 🌟 STATE STATUS KONEKSI INTERNET
+  const [isOnline, setIsOnline] = useState<boolean>(true);
 
-  // Fetch data dashboard utama
-  useEffect(() => {
-    const fetchDashboard = async () => {
+  // 1. HELPER LOAD OFFLINE DATA DARI INDEXEDDB
+  const loadLocalDashboard = useCallback(async () => {
+    if (db?.petaniDashboard) {
+      const cached = await db.petaniDashboard.get('petani_summary');
+      if (cached) {
+        setData(cached);
+        setError(null);
+      }
+    }
+  }, []);
+
+  const loadLocalLands = useCallback(async () => {
+    if (db?.lands) {
+      const cachedLands = await db.lands.toArray();
+      if (cachedLands.length > 0) setLandsData(cachedLands);
+    }
+  }, []);
+
+  const loadLocalFertilizers = useCallback(async () => {
+    if (db?.fertilizers) {
+      const cachedFertilizers = await db.fertilizers.toArray();
+      if (cachedFertilizers.length > 0) setFertilizersData(cachedFertilizers);
+    }
+  }, []);
+
+  const loadLocalTransactions = useCallback(async () => {
+    if (db?.transactions) {
+      const cachedTx = await db.transactions.toArray();
+      if (cachedTx.length > 0) setTransactionsData(cachedTx);
+    }
+  }, []);
+
+  // 2. FETCH DASHBOARD UTAMA (HYBRID API + DEXIE CACHE)
+  const fetchDashboard = useCallback(async () => {
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
         setLoading(true);
         const response = await api.get('/farmer/dashboard-summary');
-        setData(response.data.data);
+        const apiData = response.data.data;
+        setData(apiData);
+        setError(null);
+
+        // Cache data ke Dexie
+        if (db?.petaniDashboard) {
+          await db.petaniDashboard.put({
+            id: 'petani_summary',
+            ...apiData,
+            updated_at: new Date().toISOString(),
+          });
+        }
       } catch (err: any) {
-        console.error('Error dashboard:', err);
-        setError(err?.response?.data?.message || 'Gagal memuat data dashboard.');
+        console.warn('Gagal koneksi API dashboard, memuat cache offline...', err);
+        await loadLocalDashboard();
+        if (!data) setError('Gagal memuat data. Menampilkan data lokal offline.');
       } finally {
         setLoading(false);
       }
+    } else {
+      await loadLocalDashboard();
+      setLoading(false);
+    }
+  }, [loadLocalDashboard, data]);
+
+  // 3. MONITOR KONEKSI & AUTO-SYNC AUTOMATION
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const triggerSync = async () => {
+      const synced = await syncOfflineData();
+      if (synced) {
+        await fetchDashboard();
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: '🔄 Data lokal berhasil disinkronkan!',
+          showConfirmButton: false,
+          timer: 3000
+        });
+      }
     };
 
-    fetchDashboard();
-  }, []);
+    const checkActualConnection = async () => {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        setIsOnline(false);
+        return;
+      }
 
-  // Fetch data lahan
+      try {
+        const response = await fetch(`/api/health?t=${Date.now()}`, { 
+          method: 'HEAD',
+          cache: 'no-store'
+        });
+        
+        const isHealthy = response.ok;
+        setIsOnline(prev => {
+          if (!prev && isHealthy) {
+            triggerSync();
+          }
+          return isHealthy;
+        });
+      } catch (err) {
+        setIsOnline(false);
+      }
+    };
+
+    checkActualConnection();
+
+    const handleOnline = async () => {
+      setIsOnline(true);
+      await triggerSync();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    const intervalId = setInterval(() => {
+      checkActualConnection();
+    }, 10000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(intervalId);
+    };
+  }, [fetchDashboard]);
+
+  // Initial load
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  // Fetch data lahan berdasarkan view
   useEffect(() => {
     if (currentView === 'lands') {
       const fetchLands = async () => {
-        try {
-          const res = await api.get('/farmer/my-lands');
-          setLandsData(res.data.data || []);
-        } catch (err) {
-          console.error('Gagal memuat data lahan:', err);
+        if (navigator.onLine) {
+          try {
+            const res = await api.get('/farmer/my-lands');
+            const result = res.data.data || [];
+            setLandsData(result);
+            if (db?.lands && result.length > 0) {
+              await db.transaction('rw', db.lands, async () => {
+                await db.lands.clear();
+                await db.lands.bulkPut(result);
+              });
+            }
+          } catch (err) {
+            console.warn('Gagal memuat data lahan online, mengambil dari Dexie...', err);
+            await loadLocalLands();
+          }
+        } else {
+          await loadLocalLands();
         }
       };
       fetchLands();
     }
-  }, [currentView]);
+  }, [currentView, loadLocalLands]);
 
-  // Fetch data pupuk
+  // Fetch data pupuk berdasarkan view
   useEffect(() => {
     if (currentView === 'fertilizers') {
       const fetchFertilizers = async () => {
-        try {
-          const res = await api.get('/farmer/fertilizers');
-          setFertilizersData(res.data.data || []);
-        } catch (err) {
-          console.error('Gagal memuat data pupuk:', err);
+        if (navigator.onLine) {
+          try {
+            const res = await api.get('/farmer/fertilizers');
+            const result = res.data.data || [];
+            setFertilizersData(result);
+            if (db?.fertilizers && result.length > 0) {
+              await db.transaction('rw', db.fertilizers, async () => {
+                await db.fertilizers.clear();
+                await db.fertilizers.bulkPut(result);
+              });
+            }
+          } catch (err) {
+            console.warn('Gagal memuat pupuk online, mengambil dari Dexie...', err);
+            await loadLocalFertilizers();
+          }
+        } else {
+          await loadLocalFertilizers();
         }
       };
       fetchFertilizers();
     }
-  }, [currentView]);
+  }, [currentView, loadLocalFertilizers]);
 
+  // Fetch data transaksi berdasarkan view
   useEffect(() => {
     if (currentView === 'transactions') {
       const fetchTransactions = async () => {
-        try {
-          const res = await api.get('/farmer/transactions'); 
-          setTransactionsData(res.data.data || []);
-        } catch (err) {
-          console.error('Gagal memuat data transaksi:', err);
+        if (navigator.onLine) {
+          try {
+            const res = await api.get('/farmer/transactions'); 
+            const result = res.data.data || [];
+            setTransactionsData(result);
+            if (db?.transactions && result.length > 0) {
+              await db.transaction('rw', db.transactions, async () => {
+                await db.transactions.clear();
+                await db.transactions.bulkPut(result);
+              });
+            }
+          } catch (err) {
+            console.warn('Gagal memuat transaksi online, mengambil dari Dexie...', err);
+            await loadLocalTransactions();
+          }
+        } else {
+          await loadLocalTransactions();
         }
       };
       fetchTransactions();
     }
-  }, [currentView]);
+  }, [currentView, loadLocalTransactions]);
 
   // Helper fungsi Navigasi
   const navigateTo = (viewName: string) => {
@@ -146,11 +309,23 @@ function PetaniDashboardContent() {
   return (
     <div className="w-full max-w-md mx-auto font-sans bg-slate-50 min-h-screen relative pb-28 px-3">
       
+      {/* 🌟 INDICATOR OFFLINE/ONLINE */}
+      <div className="pt-2 pb-1 flex justify-end">
+        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors ${
+          isOnline 
+            ? 'bg-emerald-100/70 text-emerald-800 border border-emerald-200' 
+            : 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse'
+        }`}>
+          {isOnline ? <FaWifi className="text-[10px]" /> : <FaExclamationTriangle className="text-[10px]" />}
+          <span>{isOnline ? 'Online' : 'Offline (Tersimpan Lokal)'}</span>
+        </div>
+      </div>
+
       {loading ? (
         <DashboardSkeleton />
-      ) : error || !data ? (
+      ) : error && !data ? (
         <div className="w-full p-8 text-center text-red-500 text-sm font-medium min-h-[60vh] flex items-center justify-center">
-          {error || 'Data tidak ditemukan.'}
+          {error}
         </div>
       ) : (
         <>
@@ -164,24 +339,28 @@ function PetaniDashboardContent() {
           ) : (
             /* Tampilan Utama Dashboard (Home) */
             <div className="space-y-5">
-              <FarmerHeader
-                name={data.profile?.name}
-                role={data.profile?.role}
-                avatar={data.profile?.avatar}
-              />
+              {data && (
+                <>
+                  <FarmerHeader
+                    name={data.profile?.name}
+                    role={data.profile?.role}
+                    avatar={data.profile?.avatar}
+                  />
 
-              <SummaryCards
-                totalLandHa={data.summary?.total_land_ha}
-                fertilizerReceivedKg={data.summary?.fertilizer_received_kg}
-                totalTransactions={data.summary?.total_transactions}
-                mainCommodity={data.summary?.main_commodity}
-              />
+                  <SummaryCards
+                    totalLandHa={data.summary?.total_land_ha}
+                    fertilizerReceivedKg={data.summary?.fertilizer_received_kg}
+                    totalTransactions={data.summary?.total_transactions}
+                    mainCommodity={data.summary?.main_commodity}
+                  />
 
-              <QuickMenu />
+                  <QuickMenu />
 
-              <CalendarSection calendars={data.calendars} />
+                  <CalendarSection calendars={data.calendars} />
 
-              <RecentActivities activities={data.recent_activities} />
+                  <RecentActivities activities={data.recent_activities} />
+                </>
+              )}
             </div>
           )}
         </>
@@ -238,7 +417,6 @@ function PetaniDashboardContent() {
   );
 }
 
-// 2. Export Halaman Utama dengan Suspense Boundary
 export default function PetaniDashboardPage() {
   return (
     <Suspense fallback={<DashboardSkeleton />}>

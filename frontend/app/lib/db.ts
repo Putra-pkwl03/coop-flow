@@ -1,9 +1,34 @@
 // lib/db.ts
 import Dexie, { Table } from 'dexie';
 
-// --- INTERFACES SESUAI MIGRASI & ROUTE LARAVEL ---
+export interface FarmerDashboardCache {
+  id?: string; // ID statis e.g. 'petani_summary'
+  profile: {
+    name: string;
+    role: string;
+    avatar: string | null;
+    village: string;
+  };
+  summary: {
+    total_land_ha: number;
+    fertilizer_received_kg: number;
+    total_transactions: number;
+    main_commodity: string;
+  };
+  recent_activities: Array<any>;
+  calendars: {
+    planting: Array<any>;
+    fertilizer: Array<any>;
+  };
+  updated_at?: string;
+}
 
-// lib/db.ts
+export interface TransactionCache {
+  id: number | string;
+  [key: string]: any;
+}
+
+
 
 export interface FarmerGroup {
   id: number | string;
@@ -120,27 +145,34 @@ export interface SyncQueue {
   created_at: string;
 }
 
-// --- DEXIE DATABASE CLASS ---
 
 export class CoopFlowDB extends Dexie {
   farmers!: Table<Farmer, number | string>;
-  farmerGroups!: Table<FarmerGroup, number | string>; // 🌟 2. TAMBAHKAN PROPERTI TABEL INI
+  farmerGroups!: Table<FarmerGroup, number | string>;
   lands!: Table<Land, number | string>;
   plants!: Table<Plant, number | string>;
   fertilizers!: Table<Fertilizer, number>;
   syncQueue!: Table<SyncQueue, number>;
+  
+  // 🌟 STORE BARU UNTUK DASHBOARD PETANI
+  petaniDashboard!: Table<FarmerDashboardCache, string>;
+  transactions!: Table<TransactionCache, number | string>;
 
   constructor() {
     super('CoopFlowOfflineDB');
     
-    // Versi 1
-    this.version(1).stores({
+    // Upgrade ke Versi 2
+    this.version(2).stores({
       farmers: 'id, user_id, nik, farmer_group_id',
-      farmerGroups: 'id, name', // 🌟 3. DAFTARKAN NAMA TABEL DI SKEMA STORES
+      farmerGroups: 'id, name',
       lands: 'id, farmer_id, land_name',
       plants: 'id, land_id, name',
       fertilizers: 'id, fertilizer_code, cooperative_id',
       syncQueue: '++id, table_name, action, created_at, method',
+      
+      // 🌟 INDEKS STORE BARU
+      petaniDashboard: 'id',
+      transactions: 'id'
     });
   }
 }
