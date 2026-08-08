@@ -116,7 +116,7 @@ export default function LatestMap() {
   }, []);
 
   return (
-    <div className="bg-white p-5 rounded-3xl border border-zinc-100 shadow-sm flex flex-col justify-between h-full">
+    <div className="bg-white p-5 rounded-3xl border border-zinc-100 shadow-sm flex flex-col justify-between h-[500px]">
       <div>
         <div className="flex justify-between items-center pb-3">
           <div>
@@ -154,7 +154,7 @@ export default function LatestMap() {
           </div>
         </div>
 
-        <div className="h-115 rounded-2xl relative overflow-hidden bg-zinc-100 border border-zinc-200 shadow-inner z-0">
+        <div className="h-90 rounded-2xl relative overflow-hidden bg-zinc-100 border border-zinc-200 shadow-inner z-0">
           {!loading && <MapComponent farmers={farmers} />}
         </div>
       </div>

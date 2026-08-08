@@ -17,6 +17,7 @@ use App\Http\Controllers\RegionalController;
 use App\Http\Controllers\FertilizerController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\ProcurementOrderController;
+use App\Http\Controllers\AdminLapanganDashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -149,6 +150,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('farmers/{id}', [FarmerController::class, 'update']);
     Route::apiResource('farmers', FarmerController::class);
     Route::delete('/farmers/lands/{landId}', [FarmerController::class, 'destroyLand']);
+
+    Route::get('/admin-lapangan/dashboard', [AdminLapanganDashboardController::class, 'index']);
 
     Route::post('/farmers/lands/{landId}/fertilizer-recommendation', [FarmerController::class, 'getFertilizerRecommendation']);
     

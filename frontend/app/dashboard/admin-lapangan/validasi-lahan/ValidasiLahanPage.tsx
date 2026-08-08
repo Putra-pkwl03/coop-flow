@@ -406,8 +406,7 @@ const saveToOfflineQueue = async (payload: any) => {
       timer: 3000
     });
 
-    // 🌟 PERBAIKAN DI SINI:
-    // Otomatis pindahkan tab ke 'sudah' agar lahan yang baru divalidasi langsung muncul!
+
     setActiveTab('sudah');
     resetWorkspace();
 
@@ -429,92 +428,97 @@ const saveToOfflineQueue = async (payload: any) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-zinc-800 antialiased font-sans pb-12">
-      {/* TOPBAR HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => router.push('/dashboard/admin-lapangan')}
-            className="p-2.5 bg-white border border-zinc-200 rounded-xl text-zinc-500 hover:text-zinc-800 shadow-sm transition cursor-pointer"
-          >
-            <FaArrowLeft className="text-sm" />
-          </button>
-          <div>
-            <h1 className="text-xl font-extrabold text-zinc-900 tracking-tight">Validasi Lahan Geospasial</h1>
-            <p className="text-xs text-zinc-500 font-medium">Filter lahan belum atau sudah dimapping sebelum melakukan validasi fisik</p>
-          </div>
-        </div>
-        
-        {/* INDICATOR STATUS KONEKSI */}
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-sm self-start sm:self-auto transition-colors ${
-          isOnline 
-            ? 'bg-emerald-50 border border-emerald-100 text-emerald-700' 
-            : 'bg-amber-50 border border-amber-200 text-amber-700 animate-pulse'
-        }`}>
-          {isOnline ? <FaWifi /> : <FaExclamationTriangle />}
-          <span>{isOnline ? 'Koneksi Server Aktif' : 'Mode Offline (PWA Active)'}</span>
+  <div className="min-h-screen text-zinc-800 antialiased font-sans pb-8">
+    {/* TOPBAR HEADER */}
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+      {/* Tombol Back & Title */}
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        <button 
+          onClick={() => router.push('/dashboard/admin-lapangan')}
+          className="p-2 sm:p-2.5 bg-white border border-zinc-200/80 rounded-xl text-zinc-600 hover:text-zinc-900 shadow-sm transition active:scale-95 flex-shrink-0 cursor-pointer"
+        >
+          <FaArrowLeft className="text-xs sm:text-sm" />
+        </button>
+        <div className="min-w-0">
+          <h1 className="text-base sm:text-xl font-extrabold text-zinc-900 tracking-tight truncate">
+            Validasi Lahan Geospasial
+          </h1>
+          <p className="text-[11px] sm:text-xs text-zinc-500 font-medium line-clamp-1 sm:line-clamp-none">
+            Filter lahan belum atau sudah dimapping sebelum melakukan validasi fisik
+          </p>
         </div>
       </div>
-
-      {/* MAIN WORKSPACE GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        
-        {/* PANEL KIRI: DAFTAR PETANI */}
-        <div className="lg:col-span-5 sticky top-6">
-          <ValidationFarmerList 
-            farmers={farmers}
-            selectedFarmer={selectedFarmer}
-            selectedLand={selectedLand}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            onSelectLand={handleSelectLandForMapping}
-            activeTab={activeTab}
-            setActiveTab={handleTabChange} 
-          />
-        </div>
-
-        {/* PANEL KANAN: WORKSPACE AREA */}
-        <div className="lg:col-span-7">
-          {selectedFarmer && selectedLand ? (
-            <div className="flex flex-col space-y-4 bg-white border p-6 shadow-sm border-zinc-100 rounded-2xl">
-              <ValidationForm 
-                selectedFarmer={selectedFarmer}
-                selectedLand={selectedLand as any}
-                areaHectares={areaHectares}
-                setAreaHectares={setAreaHectares}
-                plantingDate={plantingDate}
-                setPlantingDate={setPlantingDate}
-                onSubmit={handleSaveMapping}
-                onCancel={resetWorkspace}
-                
-                mapWorkspaceComponent={
-                  <MapWorkspace 
-                    onPolygonChange={handlePolygonUpdate} 
-                    initialPolygon={polygonCoordinates} 
-                    allFarmersData={farmers} 
-                    selectedLandId={selectedLand?.id || null} 
-                    selectedLandData={selectedLand}
-                    onSelectLandDirectly={handleSelectLandForMapping}
-                    activeTab={activeTab} 
-                    calculatedAreaText={areaHectares}
-                    onTriggerReMapping={() => {
-                      isReMappingRef.current = true; 
-                      setActiveTab('belum');        
-                    }}
-                    onSave={handleSaveMapping}
-                    onCancel={resetWorkspace}
-                  />
-                }
-              />
-            </div>
-          ) : (
-            <div className="w-full rounded-2xl bg-white shadow-sm p-8.5 min-h-100 flex items-center justify-center text-center">
-              <EmptyValidationState />
-            </div>
-          )}
-        </div>
-
+      
+      {/* INDICATOR STATUS KONEKSI */}
+      <div className={`self-start sm:self-auto flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold shadow-sm transition-colors ${
+        isOnline 
+          ? 'bg-emerald-50 border border-emerald-100 text-emerald-700' 
+          : 'bg-amber-50 border border-amber-200 text-amber-700 animate-pulse'
+      }`}>
+        {isOnline ? <FaWifi className="text-xs" /> : <FaExclamationTriangle className="text-xs" />}
+        <span>{isOnline ? 'Koneksi Server Aktif' : 'Mode Offline (PWA Active)'}</span>
       </div>
     </div>
-  );
+
+    {/* MAIN WORKSPACE GRID */}
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
+      
+      {/* PANEL KIRI: DAFTAR PETANI (Sticky HANYA di Desktop/LG) */}
+      <div className="lg:col-span-5 lg:sticky lg:top-6">
+        <ValidationFarmerList 
+          farmers={farmers}
+          selectedFarmer={selectedFarmer}
+          selectedLand={selectedLand}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onSelectLand={handleSelectLandForMapping}
+          activeTab={activeTab}
+          setActiveTab={handleTabChange} 
+        />
+      </div>
+
+      {/* PANEL KANAN: WORKSPACE AREA */}
+      <div className="lg:col-span-7">
+        {selectedFarmer && selectedLand ? (
+          <div className="flex flex-col space-y-4 bg-white border p-3.5 sm:p-6 shadow-sm border-zinc-100 rounded-2xl">
+            <ValidationForm 
+              selectedFarmer={selectedFarmer}
+              selectedLand={selectedLand as any}
+              areaHectares={areaHectares}
+              setAreaHectares={setAreaHectares}
+              plantingDate={plantingDate}
+              setPlantingDate={setPlantingDate}
+              onSubmit={handleSaveMapping}
+              onCancel={resetWorkspace}
+              
+              mapWorkspaceComponent={
+                <MapWorkspace 
+                  onPolygonChange={handlePolygonUpdate} 
+                  initialPolygon={polygonCoordinates} 
+                  allFarmersData={farmers} 
+                  selectedLandId={selectedLand?.id || null} 
+                  selectedLandData={selectedLand}
+                  onSelectLandDirectly={handleSelectLandForMapping}
+                  activeTab={activeTab} 
+                  calculatedAreaText={areaHectares}
+                  onTriggerReMapping={() => {
+                    isReMappingRef.current = true; 
+                    setActiveTab('belum');        
+                  }}
+                  onSave={handleSaveMapping}
+                  onCancel={resetWorkspace}
+                />
+              }
+            />
+          </div>
+        ) : (
+          <div className="w-full rounded-2xl bg-white shadow-sm p-4 sm:p-8.5 min-h-[280px] sm:min-h-[400px] flex items-center justify-center text-center">
+            <EmptyValidationState />
+          </div>
+        )}
+      </div>
+
+    </div>
+  </div>
+);
 }
