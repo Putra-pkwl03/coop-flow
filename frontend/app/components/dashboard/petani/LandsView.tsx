@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaArrowLeft, FaMapMarkerAlt, FaSeedling, FaGlobeAsia } from 'react-icons/fa';
+import { FaArrowLeft, FaMapMarkerAlt, FaSeedling, FaGlobeAsia, FaWifi, FaExclamationTriangle } from 'react-icons/fa';
 
 interface LandsViewProps {
   lands: Array<any>;
@@ -67,6 +67,26 @@ function LandsSkeleton() {
 
 export default function LandsView({ lands, loading }: LandsViewProps) {
   const router = useRouter();
+  
+  // 🌟 STATE UNTUK MEMANTAU STATUS ONLINE
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+
+  // 🌟 EFFECT UNTUK MENANGKAP PERUBAHAN KONEKSI
+  useEffect(() => {
+    // Set status awal
+    setIsOnline(navigator.onLine);
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const getPlantEmoji = (plantName: string): string => {
     const name = plantName?.toLowerCase() || '';
@@ -76,6 +96,17 @@ export default function LandsView({ lands, loading }: LandsViewProps) {
     if (name.includes('bawang')) return '🧅';
     if (name.includes('tomat')) return '🍅';
     return '🌱';
+  };
+
+  const handleAjukanPupuk = (plantId: string | number, landId: string | number) => {
+    if (!isOnline) {
+      // Opsi: Tampilkan notifikasi toast "Anda sedang offline, pengajuan akan dikirim setelah online" 
+      // jika parent component mendukung antrean offline.
+      // Untuk sekarang, kita asumsikan fitur pengajuan butuh online.
+      alert("Maaf, pengajuan pupuk membutuhkan koneksi internet. Silakan coba lagi setelah Anda online.");
+      return;
+    }
+    router.push(`/petani/pupuk/ajukan?plant_id=${plantId}&land_id=${landId}`);
   };
 
   return (
@@ -176,12 +207,25 @@ export default function LandsView({ lands, loading }: LandsViewProps) {
                         </span>
                       </div>
 
-                      {/* Tombol Action */}
+                      {/* 🌟 Tombol Action - DISESUAIKAN UNTUK OFFLINE */}
                       <button
-                        onClick={() => router.push(`/petani/pupuk/ajukan?plant_id=${plant.id}&land_id=${land.id}`)}
-                        className="w-full bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white text-[11px] font-extrabold py-2 rounded-lg transition active:scale-[0.98] text-center block cursor-pointer"
+                        onClick={() => handleAjukanPupuk(plant.id, land.id)}
+                        className={`w-full text-white text-[11px] font-extrabold py-2 rounded-lg transition text-center flex items-center justify-center gap-2 block cursor-pointer 
+                          ${isOnline 
+                            ? 'bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 active:scale-[0.98]' 
+                            : 'bg-slate-400 cursor-not-allowed'
+                          }`}
+                        title={isOnline ? 'Ajukan pupuk sekarang' : 'Fitur ini butuh internet'}
                       >
-                        Pupuk Sekarang
+                        {isOnline ? (
+                          <>
+                            <FaWifi className="text-[10px]" /> Pupuk Sekarang
+                          </>
+                        ) : (
+                          <>
+                            <FaExclamationTriangle className="text-[10px]" /> Sedang Offline
+                          </>
+                        )}
                       </button>
                     </div>
                   ))
