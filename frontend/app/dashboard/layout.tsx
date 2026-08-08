@@ -62,12 +62,21 @@ export default function AdminKoperasiLayout({ children }: { children: React.Reac
       setProfile({ adminName: realName || "Slamet Riyadi", roleName: "Petani" });
     }
 
+    // 🌟 Pembersihan (Cleanup) yang Aman untuk Mode Offline
     return () => {
-      const userWayWidget = document.getElementById("accessibilityWidget");
-      if (userWayWidget) userWayWidget.remove();
-      
-      const userWayEmbed = document.querySelector('script[src*="userway.org"]');
-      if (userWayEmbed) userWayEmbed.remove();
+      try {
+        const userWayWidget = document.getElementById("accessibilityWidget");
+        if (userWayWidget && userWayWidget.parentNode) {
+          userWayWidget.parentNode.removeChild(userWayWidget);
+        }
+        
+        const userWayEmbed = document.querySelector('script[src*="userway.org"]');
+        if (userWayEmbed && userWayEmbed.parentNode) {
+          userWayEmbed.parentNode.removeChild(userWayEmbed);
+        }
+      } catch (err) {
+        // Mencegah error jika elemen DOM tidak ditemukan
+      }
     };
   }, []);
 
@@ -75,7 +84,6 @@ export default function AdminKoperasiLayout({ children }: { children: React.Reac
   if (!mounted) {
     return (
       <div className="min-h-screen bg-[#f8fafc] flex flex-col justify-center items-center">
-        {/* Render placeholder sederhana tanpa merender children yang butuh client state kompleks saat prerender */}
         <div className="w-full text-center text-slate-400 text-sm">Memuat...</div>
       </div>
     );
@@ -89,10 +97,14 @@ export default function AdminKoperasiLayout({ children }: { children: React.Reac
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc] text-zinc-800 antialiased font-sans">
+      {/* 🌟 Tambahkan onError agar aman dari Unhandled Promise Rejection saat offline awal */}
       <Script
         src="https://cdn.userway.org/widget.js"
         data-account="m6NNwifJHR"
         strategy="lazyOnload"
+        onError={() => {
+          console.warn("UserWay Widget gagal dimuat (Koneksi Offline/CDN tidak terjangkau).");
+        }}
       />
 
       {!hideSidebar && (

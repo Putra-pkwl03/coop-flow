@@ -75,7 +75,6 @@
 
 // export default withPWA(nextConfig);
 
-
 import withPWAInit from 'next-pwa';
 import defaultCache from 'next-pwa/cache.js';
 
@@ -88,7 +87,23 @@ const withPWA = withPWAInit({
     document: '/offline', // Hanya sebagai cadangan TERAKHIR jika halaman belum pernah dibuka sama sekali
   },
   runtimeCaching: [
-    // 1. Cache Tile Peta Spasial (Gunakan CacheFirst)
+    // 🌟 1. Cache Widget Accessibility UserWay
+    {
+      urlPattern: /^https?:\/\/(cdn|api)\.userway\.org\/.*$/i,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'userway-widget-cache',
+        expiration: {
+          maxEntries: 30,
+          maxAgeSeconds: 7 * 24 * 60 * 60, // Cache selama 7 hari
+        },
+        cacheableResponse: {
+          statuses: [0, 200], // Menangani opaque response dari CDN eksternal
+        },
+      },
+    },
+
+    // 2. Cache Tile Peta Spasial (Gunakan CacheFirst)
     {
       urlPattern: /^https?:\/\/(server\.arcgisonline\.com|.*\.tile\.openstreetmap\.org|.*\.basemaps\.cartocdn\.com|.*\.google\.com\/vt\/lyrs=.*)\/.*$/i,
       handler: 'CacheFirst',
@@ -104,14 +119,13 @@ const withPWA = withPWAInit({
       },
     },
 
-    // 2. 🌟 PERBAIKAN UTAMA: Caching Halaman / Dokumen Navigasi
-    // Gunakan 'NetworkFirst' agar saat offline, halaman yang PERNAH dibuka akan diambil dari Cache!
+    // 3. Caching Halaman / Dokumen Navigasi
     {
       urlPattern: ({ request }) => request.mode === 'navigate',
-      handler: 'NetworkFirst', // 👈 Diubah dari StaleWhileRevalidate ke NetworkFirst
+      handler: 'NetworkFirst',
       options: {
         cacheName: 'pages-cache',
-        networkTimeoutSeconds: 3, // Jika koneksi lambat dalam 3 detik, langsung tampilkan versi cache
+        networkTimeoutSeconds: 3,
         expiration: {
           maxEntries: 64,
           maxAgeSeconds: 30 * 24 * 60 * 60,
@@ -122,7 +136,7 @@ const withPWA = withPWAInit({
       },
     },
 
-    // 3. Gabungkan Aturan Bawaan next-pwa (menangani JS, CSS, _next/data, dll.)
+    // 4. Gabungkan Aturan Bawaan next-pwa (menangani JS, CSS, _next/data, dll.)
     ...defaultCache,
   ],
 });
