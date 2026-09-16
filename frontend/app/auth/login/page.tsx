@@ -18,35 +18,36 @@ export default function LoginPage() {
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [checkingHealth, setCheckingHealth] = useState<boolean>(false);
 
-  // Function Pengecekan Health Check Ke Backend (DIPERBAIKI)
-  const checkBackendHealth = useCallback(async () => {
-    // 1. Cek hardware koneksi browser lebih dulu
-    if (typeof window !== "undefined" && !navigator.onLine) {
-      setIsOnline(false);
-      return false;
-    }
+const checkBackendHealth = useCallback(async () => {
+  if (typeof window !== "undefined" && !navigator.onLine) {
+    setIsOnline(false);
+    return false;
+  }
 
-    try {
-      setCheckingHealth(true);
-      
-      // Axios akan menganggap sukses jika ada RESPON APAPUN dari server (200, 401, 404)
-      // karena yang kita butuhkan hanya kepastian "Server Backend merespons / hidup"
-      await api.get("/health", { 
-        timeout: 4000,
-        validateStatus: (status) => status < 500 // Status < 500 berarti server merespons!
-      });
+  try {
+    setCheckingHealth(true);
+    
+    // Panggil route Next.js lokal (/api/health) langsung via fetch
+    const response = await fetch('/api/health', {
+      method: 'GET',
+      cache: 'no-store',
+    });
 
+    if (response.ok) {
       setIsOnline(true);
       return true;
-    } catch (error: any) {
-      // Jika terjadi ERR_NETWORK, ECONNREFUSED, atau Timeout (504), baru anggap Offline
-      console.warn("[HealthCheck] Server Backend tidak dapat dijangkau:", error?.message);
+    } else {
       setIsOnline(false);
       return false;
-    } finally {
-      setCheckingHealth(false);
     }
-  }, []);
+  } catch (error) {
+    console.warn("[HealthCheck] Gagal terhubung ke Frontend Health Route:", error);
+    setIsOnline(false);
+    return false;
+  } finally {
+    setCheckingHealth(false);
+  }
+}, []);
 
   // Monitoring koneksi
   useEffect(() => {
