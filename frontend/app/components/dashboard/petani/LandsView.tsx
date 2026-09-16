@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import api from '@/app/lib/axios';
+import Swal from 'sweetalert2';
 import { 
   FaArrowLeft, 
   FaMapMarkerAlt, 
@@ -80,6 +81,19 @@ export default function LandsView({ lands, loading, farmerName, farmerId }: Land
     notes: '',
   });
 
+  // Konfigurasi SweetAlert2 Toast Kanan Atas
+  const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer);
+      toast.addEventListener('mouseleave', Swal.resumeTimer);
+    }
+  });
+
   useEffect(() => {
     setIsOnline(navigator.onLine);
     const handleOnline = () => setIsOnline(true);
@@ -122,7 +136,10 @@ export default function LandsView({ lands, loading, farmerName, farmerId }: Land
   // Handler Buka Modal
   const handleOpenModal = (landId: number, plant: any) => {
     if (!isOnline) {
-      alert("Maaf, pengajuan pemupukan membutuhkan koneksi internet.");
+      Toast.fire({
+        icon: 'warning',
+        title: 'Maaf, pengajuan pemupukan membutuhkan koneksi internet.'
+      });
       return;
     }
 
@@ -146,7 +163,10 @@ export default function LandsView({ lands, loading, farmerName, farmerId }: Land
     e.preventDefault();
 
     if (!formData.fertilizer_name) {
-      alert("Silakan pilih pupuk terlebih dahulu.");
+      Toast.fire({
+        icon: 'warning',
+        title: 'Silakan pilih pupuk terlebih dahulu.'
+      });
       return;
     }
 
@@ -169,11 +189,17 @@ export default function LandsView({ lands, loading, farmerName, farmerId }: Land
       };
 
       await api.post('/fertilizer-histories', payload);
-      alert('Pengajuan pemupukan berhasil disimpan!');
+      Toast.fire({
+        icon: 'success',
+        title: 'Pengajuan pemupukan berhasil disimpan!'
+      });
       setIsModalOpen(false);
     } catch (error: any) {
       console.error(error);
-      alert(error.response?.data?.message || 'Gagal menyimpan data pemupukan.');
+      Toast.fire({
+        icon: 'error',
+        title: error.response?.data?.message || 'Gagal menyimpan data pemupukan.'
+      });
     } finally {
       setSubmitting(false);
     }
