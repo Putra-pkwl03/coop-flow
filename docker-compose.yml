@@ -1,16 +1,16 @@
 services:
   # 1. Database Service
-  # database:
-  #   image: postgis/postgis:15-3.3
-  #   container_name: coopflow_db
-  #   environment:
-  #     POSTGRES_DB: coopflow_db
-  #     POSTGRES_USER: coopflow_user
-  #     POSTGRES_PASSWORD: secretpassword
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - pgdata:/var/lib/postgresql/data
+  database:
+    image: postgis/postgis:15-3.3
+    container_name: coopflow_db
+    environment:
+      POSTGRES_DB: coopflow_db
+      POSTGRES_USER: coopflow_user
+      POSTGRES_PASSWORD: secretpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
   # 2. Backend Service
   backend:

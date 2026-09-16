@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import api from "../../../lib/axios";
 import { Farmer } from "@/app/types/farmer";
+import WeatherChart from "../../dashboard/data-tanaman/LandGrowthChart";
 
 // Memuat MapComponent secara dinamis tanpa SSR
 const MapComponent = dynamic(() => import("../MapComponent"), {
@@ -738,131 +739,142 @@ export default function DetailAnggota({
                     </div>
                   </div>
 
-                  {/* 3. SUB-AKORDION KOMODITAS TANAMAN */}
-                  <div className="pt-5 border-t border-gray-100 space-y-3 mt-5">
-                    {land.plants &&
-                      land.plants.map((plant: Plant, pIdx: number) => {
-                        const isPlantOpen = openPlantIndex === pIdx;
+                 {/* 3. SUB-AKORDION KOMODITAS TANAMAN */}
+<div className="pt-5 border-t border-gray-100 space-y-3 mt-5">
+  {land.plants &&
+    land.plants.map((plant: Plant, pIdx: number) => {
+      const isPlantOpen = openPlantIndex === pIdx;
 
-                        return (
-                          <div
-                            key={plant.id || pIdx}
-                            className="border border-gray-200/80 rounded-xl overflow-hidden bg-white shadow-2xs transition-all"
-                          >
-                            <div
-                              onClick={() =>
-                                setOpenPlantIndex(isPlantOpen ? -1 : pIdx)
-                              }
-                              className="p-3.5 bg-white hover:bg-gray-50/80 flex items-center justify-between cursor-pointer transition-colors text-sm"
-                            >
-                              <div className="flex items-center gap-3">
-                                {/* Ikon Komoditas Vector */}
-                                <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center shrink-0 border border-emerald-100/80">
-                                  {renderPlantIcon(plant.name)}
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-gray-900 capitalize">
-                                    {plant.name || "Komoditas Tanaman"}
-                                  </p>
-                                  <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
-                                    <span className="bg-gray-100 font-medium px-2 py-0.5 rounded text-gray-600">
-                                      {plant.planted_area || land.area || "—"}{" "}
-                                      {land.unit || "Ha"}
-                                    </span>
-                                    <span>•</span>
-                                    <span>Lahan {index + 1}</span>
-                                    <span>•</span>
-                                    <span className="inline-flex items-center gap-1 text-gray-500">
-                                      <svg
-                                        className="w-3 h-3 text-emerald-600 inline"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                      >
-                                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                                        <circle cx="12" cy="10" r="3" />
-                                      </svg>{" "}
-                                      {land.district?.name ||
-                                        farmer.district?.name ||
-                                        "—"}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
+      return (
+        <div
+          key={plant.id || pIdx}
+          className="border border-gray-200/80 rounded-xl overflow-hidden bg-white shadow-2xs transition-all"
+        >
+          <div
+            onClick={() =>
+              setOpenPlantIndex(isPlantOpen ? -1 : pIdx)
+            }
+            className="p-3.5 bg-white hover:bg-gray-50/80 flex items-center justify-between cursor-pointer transition-colors text-sm"
+          >
+            <div className="flex items-center gap-3">
+              {/* Ikon Komoditas Vector */}
+              <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center shrink-0 border border-emerald-100/80">
+                {renderPlantIcon(plant.name)}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 capitalize">
+                  {plant.name || "Komoditas Tanaman"}
+                </p>
+                <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                  <span className="bg-gray-100 font-medium px-2 py-0.5 rounded text-gray-600">
+                    {plant.planted_area || land.area || "—"}{" "}
+                    {land.unit || "Ha"}
+                  </span>
+                  <span>•</span>
+                  <span>Lahan {index + 1}</span>
+                  <span>•</span>
+                  <span className="inline-flex items-center gap-1 text-gray-500">
+                    <svg
+                      className="w-3 h-3 text-emerald-600 inline"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>{" "}
+                    {land.district?.name ||
+                      farmer.district?.name ||
+                      "—"}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth={2}
-                                stroke="currentColor"
-                                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-                                  isPlantOpen ? "rotate-180" : ""
-                                }`}
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="m19.5 8.25-7.5 7.5-7.5-7.5"
-                                />
-                              </svg>
-                            </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                isPlantOpen ? "rotate-180" : ""
+              }`}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m19.5 8.25-7.5 7.5-7.5-7.5"
+              />
+            </svg>
+          </div>
 
-                            {isPlantOpen && (
-                              <div className="p-4 bg-gray-50/50 border-t border-gray-100 space-y-4 text-sm">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
-                                    INFORMASI TANAMAN
-                                  </span>
-                                  <div className="h-px bg-emerald-100 flex-1"></div>
-                                </div>
+          {isPlantOpen && (
+            <div className="p-4 bg-gray-50/50 border-t border-gray-100 space-y-4 text-sm">
+              
+              {/* ==================== DIAGRAM DI ATAS ==================== */}
+              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-2xs">
+                <span className="text-xs font-bold text-zinc-500 block uppercase tracking-wider mb-3">
+                  GRAFIK TREN AGRO-IKLIM
+                </span>
+                {/* Panggil komponen diagrammu di sini */}
+                <WeatherChart landId={land.id} /> 
+              </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-3.5 rounded-lg border border-gray-100 shadow-2xs">
-                                  <div>
-                                    <span className="text-gray-400 block text-xs font-medium uppercase tracking-wider mb-1">
-                                      Nama Tanaman
-                                    </span>
-                                    <span className="font-semibold text-gray-900 capitalize block">
-                                      {plant.name || "—"}
-                                    </span>
-                                  </div>
+              {/* INFORMASI TANAMAN */}
+              <div className="flex items-center gap-2 pt-2">
+                <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                  INFORMASI TANAMAN
+                </span>
+                <div className="h-px bg-emerald-100 flex-1"></div>
+              </div>
 
-                                  <div>
-                                    <span className="text-gray-400 block text-xs font-medium uppercase tracking-wider mb-1">
-                                      Luas Ditanam
-                                    </span>
-                                    <span className="font-semibold text-gray-900 block">
-                                      {plant.planted_area || land.area || "—"}{" "}
-                                      {land.unit || "Ha"}
-                                    </span>
-                                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-3.5 rounded-lg border border-gray-100 shadow-2xs">
+                <div>
+                  <span className="text-gray-400 block text-xs font-medium uppercase tracking-wider mb-1">
+                    Nama Tanaman
+                  </span>
+                  <span className="font-semibold text-gray-900 capitalize block">
+                    {plant.name || "—"}
+                  </span>
+                </div>
 
-                                  <div>
-                                    <span className="text-gray-400 block text-xs font-medium uppercase tracking-wider mb-1">
-                                      Tanggal Tanam
-                                    </span>
-                                    <span className="font-semibold text-gray-900 block">
-                                      {plant.planting_date || "—"}
-                                    </span>
-                                  </div>
-                                </div>
+                <div>
+                  <span className="text-gray-400 block text-xs font-medium uppercase tracking-wider mb-1">
+                    Luas Ditanam
+                  </span>
+                  <span className="font-semibold text-gray-900 block">
+                    {plant.planted_area || land.area || "—"}{" "}
+                    {land.unit || "Ha"}
+                  </span>
+                </div>
 
-                                <div className="bg-white p-3.5 rounded-lg border border-gray-100 shadow-2xs">
-                                  <span className="text-gray-400 block text-xs font-medium uppercase tracking-wider mb-1">
-                                    Catatan
-                                  </span>
-                                  <p className="text-gray-600 text-xs italic">
-                                    {plant.notes ||
-                                      "Tidak ada catatan untuk tanaman ini."}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
+                <div>
+                  <span className="text-gray-400 block text-xs font-medium uppercase tracking-wider mb-1">
+                    Tanggal Tanam
+                  </span>
+                  <span className="font-semibold text-gray-900 block">
+                    {plant.planting_date || "—"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-lg border border-gray-100 shadow-2xs">
+                <span className="text-gray-400 block text-xs font-medium uppercase tracking-wider mb-1">
+                  Catatan
+                </span>
+                <p className="text-gray-600 text-xs italic">
+                  {plant.notes ||
+                    "Tidak ada catatan untuk tanaman ini."}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    })}
+</div>
                 </div>
               )}
             </div>

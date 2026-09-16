@@ -44,6 +44,9 @@ Route::prefix('regional')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/lands/{id}/growth-chart', [FarmerController::class, 'getNdviHistory']);
+    Route::get('/lands/all-ndvi-map-tile', [FarmerController::class, 'getAllLandsNdviTile']);
+    
     
     // Profil & Logout
     Route::get('/user', function (Request $request) {
@@ -158,5 +161,11 @@ Route::middleware('auth:sanctum')->group(function () {
     
     Route::post('/parcels', [ParcelController::class, 'store']);
     Route::apiResource('plants', PlantController::class);
+
+    Route::get('/farmer/fertilizer-histories', [FarmerController::class, 'getFertilizerHistories']);
+    Route::post('/fertilizer-histories', [FarmerController::class, 'storeFertilizerHistory']);
+    Route::put('/fertilizer-histories/{id}', [FarmerController::class, 'updateFertilizerHistory']);
+    Route::delete('/fertilizer-histories/{id}', [FarmerController::class, 'destroyFertilizerHistory']);
+    Route::get('/farmer/my-fertilizers', [FarmerController::class, 'getMyFertilizers']);
 
 });

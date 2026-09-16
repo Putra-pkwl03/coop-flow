@@ -18,6 +18,10 @@ import RecentActivities from '@/app/components/dashboard/petani/RecentActivities
 import LandsView from '@/app/components/dashboard/petani/LandsView';
 import FertilizersView from '@/app/components/dashboard/petani/FertilizersView'; 
 import TransactionsView from '@/app/components/dashboard/petani/TransactionsView'; 
+import VoiceNavigation from '@/app/components/dashboard/petani/VoiceNavigation';
+
+// 1. IMPORT KOMPONEN Halaman Riwayat Pemupukan yang Baru
+import FertilizerScheduleView from '@/app/components/dashboard/petani/FertilizerScheduleView';
 
 interface DashboardData {
   profile: {
@@ -101,16 +105,14 @@ function PetaniDashboardContent() {
     }
   }, []);
 
-  // 2. FETCH DASHBOARD UTAMA (Mencegah Flashing)
+  // 2. FETCH DASHBOARD UTAMA
   const fetchDashboard = useCallback(async () => {
-    // 💡 Muat dulu data lokal secara silent jika data state belum ada
     if (!data) {
       await loadLocalDashboard();
     }
 
     if (typeof navigator !== 'undefined' && navigator.onLine) {
       try {
-        // Hanya munculkan skeleton jika benar-benar belum punya data sama sekali
         if (!data) setLoading(true);
 
         const response = await api.get('/farmer/dashboard-summary');
@@ -137,7 +139,7 @@ function PetaniDashboardContent() {
     }
   }, [loadLocalDashboard, data]);
 
-  // 3. MONITOR KONEKSI & AUTO-SYNC AUTOMATION (DIPERBAIKI)
+  // 3. MONITOR KONEKSI & AUTO-SYNC AUTOMATION
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -157,7 +159,6 @@ function PetaniDashboardContent() {
     };
 
     const checkActualConnection = async () => {
-      // 💡 JIKA BROWSER SUDAH OFFLINE, JANGAN LAKUKAN FETCH HEALTH CHECK
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         setIsOnline(false);
         return;
@@ -175,12 +176,10 @@ function PetaniDashboardContent() {
           return isHealthy;
         });
       } catch (err) {
-        // Hanya set state jika sebelumnya bernilai true agar tidak re-render tak terbatas
         setIsOnline(prev => (prev ? false : prev));
       }
     };
 
-    // Jalankan awal
     checkActualConnection();
 
     const handleOnline = async () => {
@@ -195,7 +194,6 @@ function PetaniDashboardContent() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Polling setiap 15 detik HANYA JIKA navigator.onLine bernilai true
     const intervalId = setInterval(() => {
       if (navigator.onLine) {
         checkActualConnection();
@@ -218,7 +216,7 @@ function PetaniDashboardContent() {
   useEffect(() => {
     if (currentView === 'lands') {
       const fetchLands = async () => {
-        await loadLocalLands(); // Muat lokal dulu tanpa loading
+        await loadLocalLands();
         if (navigator.onLine) {
           try {
             const res = await api.get('/farmer/my-lands');
@@ -289,16 +287,20 @@ function PetaniDashboardContent() {
     }
   }, [currentView, loadLocalTransactions]);
 
-  const navigateTo = (viewName: string) => {
+  const navigateTo = useCallback((viewName: string) => {
     if (viewName === 'home') {
       router.push('/dashboard/petani');
     } else {
       router.push(`?view=${viewName}`);
     }
-  };
+  }, [router]);
 
   return (
     <div className="w-full max-w-md mx-auto font-sans bg-slate-50 min-h-screen relative pb-28 px-3">
+      <VoiceNavigation 
+        userName={data?.profile?.name} 
+        onNavigate={navigateTo} 
+      />
       {loading && !data ? (
         <DashboardSkeleton />
       ) : error && !data ? (
@@ -307,12 +309,16 @@ function PetaniDashboardContent() {
         </div>
       ) : (
         <>
+          {/* 2. PENGONDISIAN ROUTING VIEW */}
           {currentView === 'lands' ? (
             <LandsView lands={landsData} />
           ) : currentView === 'fertilizers' ? (
             <FertilizersView fertilizers={fertilizersData} />
           ) : currentView === 'transactions' ? (
             <TransactionsView transactions={transactionsData} />
+          ) : currentView === 'fertilizer-history' ? (
+            /* Menampilkan Halaman Riwayat & Jadwal Pemupukan */
+            <FertilizerScheduleView />
           ) : (
             <div className="space-y-5">
               {data && (

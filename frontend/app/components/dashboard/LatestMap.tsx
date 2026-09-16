@@ -143,7 +143,7 @@ export default function LatestMap() {
             </div>
 
             <p className="text-xs text-slate-400 mt-0.5">
-              Visualisasi klaster spasial terdaftar
+              Visualisasi klaster spasial & analisis kesehatan lahan (NDVI)
             </p>
           </div>
 

@@ -16,6 +16,7 @@ interface PlantInput {
 
 interface AddPlantFormProps {
   lands: Land[];
+  initialLandId?: number | null; // <-- Tambahkan prop ini
   onCancel: () => void;
   onSave: (data: { land_id: number; plants: PlantInput[] }) => void;
   editingPlant?: (Plant & { land_id: number }) | null;
@@ -35,6 +36,7 @@ interface AddPlantFormProps {
 
 export default function AddPlantForm({ 
   lands, 
+  initialLandId,
   onCancel, 
   onSave, 
   editingPlant, 
@@ -43,8 +45,9 @@ export default function AddPlantForm({
   
   const isEditMode = !!editingPlant;
 
-  const [selectedLandId, setSelectedLandId] = useState<number>(lands[0]?.id || 0);
-  const [landArea, setLandArea] = useState<string>(lands[0]?.area || '0');
+  const defaultLandId = initialLandId || lands[0]?.id || 0;
+  const [selectedLandId, setSelectedLandId] = useState<number>(defaultLandId);
+  const [landArea, setLandArea] = useState<string>('0');
 
   // Inisialisasi baris input utama dengan field parameter tanaman terlengkap
   const [plantRows, setPlantRows] = useState<PlantInput[]>([
@@ -58,7 +61,7 @@ export default function AddPlantForm({
     }
   ]);
 
-  // EFFECT 1: Mengisi data jika form dalam mode Edit
+// EFFECT 1: Update state saat initialLandId / editingPlant berubah
   useEffect(() => {
     if (isEditMode && editingPlant) {
       setSelectedLandId(editingPlant.land_id);
@@ -73,7 +76,7 @@ export default function AddPlantForm({
         }
       ]);
     } else {
-      setSelectedLandId(lands[0]?.id || 0);
+      setSelectedLandId(initialLandId || lands[0]?.id || 0);
       setPlantRows([
         { 
           name: '', 
@@ -85,7 +88,17 @@ export default function AddPlantForm({
         }
       ]);
     }
-  }, [editingPlant, isEditMode, lands]);
+  }, [editingPlant, isEditMode, lands, initialLandId]);
+
+  // EFFECT 2: Update luas lahan otomatis sesuai selectedLandId
+  useEffect(() => {
+    const currentLand = lands.find((l) => l.id === Number(selectedLandId));
+    if (currentLand) {
+      setLandArea(currentLand.area);
+    }
+  }, [selectedLandId, lands]);
+
+  
 
   // EFFECT 2: Sinkronisasi Luas Lahan saat target lahan diubah
   useEffect(() => {

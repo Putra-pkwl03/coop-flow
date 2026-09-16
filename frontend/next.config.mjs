@@ -51,8 +51,8 @@
 
 // /** @type {import('next').NextConfig} */
 // const nextConfig = {
-//   // Catatan: output: 'standalone' bisa di-comment saat dev jika terasa berat
-//   // output: 'standalone', 
+//   // Aktifkan ini agar Next.js menghasilkan file /app/server.js untuk Docker
+//   output: 'standalone', 
 //   typescript: {
 //     ignoreBuildErrors: true, 
 //   },

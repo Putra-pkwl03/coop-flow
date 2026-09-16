@@ -269,92 +269,101 @@ useEffect(() => {
     setActiveTab(tab);
   };
 
-  // 3. HANDLER SAVE MAPPING
-  const handleSaveMapping = async (
-    eOrClimateData: React.FormEvent | any, 
-    optionalClimateData?: any
-  ) => {
-    let agroClimateData = optionalClimateData;
+// 3. HANDLER SAVE MAPPING (UPDATED)
+const handleSaveMapping = async (
+  eOrClimateData: React.FormEvent | any, 
+  optionalClimateData?: any
+) => {
+  let agroClimateData = optionalClimateData;
 
-    if (eOrClimateData && typeof eOrClimateData.preventDefault === 'function') {
-      eOrClimateData.preventDefault();
-    } else if (eOrClimateData && !optionalClimateData) {
-      agroClimateData = eOrClimateData;
-    }
+  if (eOrClimateData && typeof eOrClimateData.preventDefault === 'function') {
+    eOrClimateData.preventDefault();
+  } else if (eOrClimateData && !optionalClimateData) {
+    agroClimateData = eOrClimateData;
+  }
 
-    if (!selectedFarmer || !selectedLand) return;
+  if (!selectedFarmer || !selectedLand) return;
 
-    const payload = {
-      name: (selectedFarmer.user?.name || '').trim(),
-      email: (selectedFarmer.user?.email || '').trim(),
-      phone: selectedFarmer.user?.phone || null,
-      address: selectedFarmer.user?.address || null,
-      farmer_group_id: selectedFarmer.farmer_group?.id || null,
-      nik: String(selectedFarmer.nik).trim(),
-      notes: selectedFarmer.notes || null,
-      
-      lands: selectedFarmer.lands?.map((land) => {
-        if (land.id === selectedLand.id) {
-          return {
-            id: land.id, 
-            land_name: land.land_name,
-            area: parseFloat(areaHectares) || 0, 
-            unit: land.unit || 'Hektar(Ha)', 
-            status: land.status || 'Milik Sendiri', 
-            location_address: land.location_address || null,
-            polygon_coordinates: polygonCoordinates, 
-            planting_date: plantingDate, 
-
-            center_latitude: agroClimateData?.center_latitude || null,
-            center_longitude: agroClimateData?.center_longitude || null,
-            average_temperature: agroClimateData?.average_temperature || null,
-            average_humidity: agroClimateData?.average_humidity || null,
-            average_monthly_precipitation: agroClimateData?.average_monthly_precipitation || null,
-          };
-        }
-        
+  const payload = {
+    name: (selectedFarmer.user?.name || '').trim(),
+    email: (selectedFarmer.user?.email || '').trim(),
+    phone: selectedFarmer.user?.phone || null,
+    address: selectedFarmer.user?.address || null,
+    farmer_group_id: selectedFarmer.farmer_group?.id || null,
+    nik: String(selectedFarmer.nik).trim(),
+    notes: selectedFarmer.notes || null,
+    
+    lands: selectedFarmer.lands?.map((land) => {
+      if (land.id === selectedLand.id) {
         return {
           id: land.id, 
           land_name: land.land_name,
-          area: parseFloat(land.area as string) || 0,
+          area: parseFloat(areaHectares) || 0, 
           unit: land.unit || 'Hektar(Ha)', 
           status: land.status || 'Milik Sendiri', 
           location_address: land.location_address || null,
-          polygon_coordinates: land.polygon_coordinates || null, 
-          center_latitude: (land as any).center_latitude || null,
-          center_longitude: (land as any).center_longitude || null,
-          average_temperature: (land as any).average_temperature || null,
-          average_humidity: (land as any).average_humidity || null,
-          average_monthly_precipitation: (land as any).average_monthly_precipitation || null,
+          polygon_coordinates: polygonCoordinates, 
+          planting_date: plantingDate, 
+
+          // 🌟 MASUKKAN AGRO CLIMATE & NDVI DATA DI SINI
+          center_latitude: agroClimateData?.center_latitude ?? (land as any).center_latitude ?? null,
+          center_longitude: agroClimateData?.center_longitude ?? (land as any).center_longitude ?? null,
+          average_temperature: agroClimateData?.average_temperature ?? (land as any).average_temperature ?? null,
+          average_humidity: agroClimateData?.average_humidity ?? (land as any).average_humidity ?? null,
+          average_monthly_precipitation: agroClimateData?.average_monthly_precipitation ?? (land as any).average_monthly_precipitation ?? null,
+          
+          // 🚀 TAMBAHKAN 2 BARIS INI KARENA SEBELUMNYA TERTINGGAL:
+          current_ndvi: agroClimateData?.current_ndvi ?? (land as any).current_ndvi ?? null,
+          agro_polygon_id: agroClimateData?.agro_polygon_id ?? (land as any).agro_polygon_id ?? null,
         };
-      }) || []
-    };
-
-    if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && navigator.onLine) {
-      try {
-        const response = await api.put(`/farmers/${selectedFarmer.id}`, payload);
-
-        if (response.data.success) {
-          Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'success',
-            title: `Geospasial "${selectedLand.land_name}" berhasil disinkronisasi!`,
-            showConfirmButton: false,
-            timer: 3000
-          });
-
-          resetWorkspace();
-          await fetchFarmers(); 
-        }
-      } catch (error: any) {
-        console.error("Gagal sinkronisasi ke backend online", error);
-        await saveToOfflineQueue(payload);
       }
-    } else {
+      
+      return {
+        id: land.id, 
+        land_name: land.land_name,
+        area: parseFloat(land.area as string) || 0,
+        unit: land.unit || 'Hektar(Ha)', 
+        status: land.status || 'Milik Sendiri', 
+        location_address: land.location_address || null,
+        polygon_coordinates: land.polygon_coordinates || null, 
+        center_latitude: (land as any).center_latitude || null,
+        center_longitude: (land as any).center_longitude || null,
+        average_temperature: (land as any).average_temperature || null,
+        average_humidity: (land as any).average_humidity || null,
+        average_monthly_precipitation: (land as any).average_monthly_precipitation || null,
+        
+        // 🚀 TAMBAHKAN JUGA UNTUK LAHAN LAIN AGAR TIDAK HILANG DATA NDVI-NYA:
+        current_ndvi: (land as any).current_ndvi || null,
+        agro_polygon_id: (land as any).agro_polygon_id || null,
+      };
+    }) || []
+  };
+
+  if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && navigator.onLine) {
+    try {
+      const response = await api.put(`/farmers/${selectedFarmer.id}`, payload);
+
+      if (response.data.success) {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: `Geospasial "${selectedLand.land_name}" berhasil disinkronisasi!`,
+          showConfirmButton: false,
+          timer: 3000
+        });
+
+        resetWorkspace();
+        await fetchFarmers(); 
+      }
+    } catch (error: any) {
+      console.error("Gagal sinkronisasi ke backend online", error);
       await saveToOfflineQueue(payload);
     }
-  };
+  } else {
+    await saveToOfflineQueue(payload);
+  }
+};
 
 const saveToOfflineQueue = async (payload: any) => {
   try {

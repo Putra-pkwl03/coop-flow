@@ -10,6 +10,7 @@ use App\Models\Fertilizer;
 use App\Models\Cooperative;
 use App\Models\InventoryMutation;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str; // Import Str
 use Carbon\Carbon;
 
 class TransactionSeeder extends Seeder
@@ -104,10 +105,13 @@ class TransactionSeeder extends Seeder
                 $transactionDate = (clone $baseDate)->addDays(rand(1, 28));
                 $dateString = $transactionDate->format('ymd');
 
+                // PERBAIKAN: Gunakan kombinasikan ID Koperasi, index loop, dan karakter acak unik
+                $uniqueSuffix = $cooperative->id . $i . strtoupper(Str::random(4));
+
                 // 1. Buat Header Transaksi
                 $transaction = Transaction::create([
-                    'transaction_code' => 'GAF-' . $dateString . '-' . rand(1000, 9999),
-                    'invoice_number'   => 'INV-' . $dateString . '-' . rand(1000, 9999),
+                    'transaction_code' => 'GAF-' . $dateString . '-' . $uniqueSuffix,
+                    'invoice_number'   => 'INV-' . $dateString . '-' . $uniqueSuffix,
                     'farmer_id'        => $farmer->id,
                     'grand_total'      => $subtotal,
                     'amount_paid'      => $subtotal,

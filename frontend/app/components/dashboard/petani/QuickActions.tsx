@@ -60,7 +60,7 @@ export default function QuickMenu() {
           </button>
         </div>
 
-        {/* Menu 3: Nota & Transaksi (AKTIF) */}
+        {/* Menu 3: Nota & Transaksi */}
         <div 
           onClick={() => handleNavigate('transactions')}
           className="bg-fuchsia-100/80 hover:bg-fuchsia-200/90 border border-fuchsia-300/70 p-4 rounded-2xl flex flex-col justify-between space-y-3 cursor-pointer active:scale-95 transition shadow-2xs group"
@@ -82,7 +82,7 @@ export default function QuickMenu() {
           </button>
         </div>
 
-        {/* Menu 4: Jadwal Pemupukan */}
+        {/* Menu 4: Jadwal & Riwayat Pemupukan (UPDATED) */}
         <div 
           onClick={() => handleNavigate('fertilizer-history')}
           className="bg-sky-100/80 hover:bg-sky-200/90 border border-sky-300/70 p-4 rounded-2xl flex flex-col justify-between space-y-3 cursor-pointer active:scale-95 transition shadow-2xs group"
@@ -92,15 +92,15 @@ export default function QuickMenu() {
               <FaHistory className="text-lg" />
             </div>
             <div className="min-w-0">
-              <p className="font-black text-xs text-slate-900 leading-snug">Jadwal Pemupukan</p>
-              <p className="text-[10px] font-semibold text-slate-600 mt-0.5">Catatan pupuk di sawah</p>
+              <p className="font-black text-xs text-slate-900 leading-snug">Jadwal & Riwayat</p>
+              <p className="text-[10px] font-semibold text-slate-600 mt-0.5">Jadwal dan lahan yang dipupuk</p>
             </div>
           </div>
           <button 
             tabIndex={-1}
             className="w-full bg-white text-sky-900 text-xs font-black py-2 rounded-xl shadow-2xs border border-sky-200 pointer-events-none"
           >
-            Lihat Catatan
+            Lihat Pemupukan
           </button>
         </div>
       </div>

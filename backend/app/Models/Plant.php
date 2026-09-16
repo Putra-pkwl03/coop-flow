@@ -24,4 +24,9 @@ class Plant extends Model
     {
         return $this->belongsTo(Land::class);
     }
+
+    public function fertilizerHistories(): HasMany
+    {
+        return $this->hasMany(FertilizerHistory::class);
+    }
 }

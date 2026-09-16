@@ -60,6 +60,7 @@ export interface Land {
   updated_at: string;
   plants?: Plant[]; 
   village?: Village;
+  image_url?: string | null;
 }
 
 export interface Village {

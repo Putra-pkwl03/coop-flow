@@ -1,3 +1,4 @@
+// src/components/MapWorkspace.tsx
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -46,7 +47,7 @@ export default function MapWorkspace({
   onSave,
   onCancel
 }: MapWorkspaceProps) {
-  const [currentGPS, setCurrentGPS] = useState<[number, number]>([-7.7924, 110.3313]); // Default ke koordinat tersimpan
+  const [currentGPS, setCurrentGPS] = useState<[number, number]>([-7.7924, 110.3313]);
   const [polygonCoords, setPolygonCoords] = useState<[number, number][]>([]);
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null); 
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -55,16 +56,17 @@ export default function MapWorkspace({
   
   const [isOnline, setIsOnline] = useState<boolean>(true);
 
-  // State untuk menyimpan nilai cuaca makro
+  // State Iklim & NDVI
   const [macroClimate, setMacroClimate] = useState<{
     avgTemp: number | string;
     avgHumidity: number | string;
     avgRain: number | string;
   }>({ avgTemp: '--', avgHumidity: '--', avgRain: '--' });
+  
+  const [currentNdvi, setCurrentNdvi] = useState<number | string | null>('--');
 
   const workspaceRef = useRef<HTMLDivElement>(null);
 
-  // 🌟 READ WEATHER FROM LOCAL STORAGE ON OFFLINE / INITIAL LOAD
   const loadLocalStorageWeather = () => {
     try {
       const savedWeather = localStorage.getItem('current_validation_weather');
@@ -93,7 +95,6 @@ export default function MapWorkspace({
     }
   };
 
-  // 🌟 CHECK STATUS KONEKSI & READ LOCAL CACHE
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
@@ -117,7 +118,6 @@ export default function MapWorkspace({
     };
   }, []);
 
-  // Sync koordinat awal jika ada data passing-an
   useEffect(() => {
     if (initialPolygon && initialPolygon.length > 0) {
       setPolygonCoords(initialPolygon);
@@ -127,29 +127,31 @@ export default function MapWorkspace({
     }
   }, [initialPolygon]);
 
-  // Sinkronisasi data iklim dari DB / Offline Cache ke UI
+  // Sinkronisasi data iklim & NDVI dari Backend
   useEffect(() => {
     if (activeTab === 'sudah' && selectedLandData) {
       const dbTemp = selectedLandData.average_temperature;
       const dbHumidity = selectedLandData.average_humidity;
       const dbRain = selectedLandData.average_monthly_precipitation;
+      const dbNdvi = selectedLandData.current_ndvi;
 
       setMacroClimate({
         avgTemp: dbTemp !== null && dbTemp !== undefined ? Number(dbTemp) : '--',
         avgHumidity: dbHumidity !== null && dbHumidity !== undefined ? Number(dbHumidity) : '--',
         avgRain: dbRain !== null && dbRain !== undefined ? Number(dbRain) : '--'
       });
+      
+      setCurrentNdvi(dbNdvi !== null && dbNdvi !== undefined ? dbNdvi : '--');
     } else if (activeTab === 'belum' && polygonCoords.length === 0) {
-      // Jika offline dan belum pilih lahan, load dari local storage
       if (!isOnline) {
         loadLocalStorageWeather();
       } else {
         setMacroClimate({ avgTemp: '--', avgHumidity: '--', avgRain: '--' });
+        setCurrentNdvi('--');
       }
     }
   }, [selectedLandId, selectedLandData, activeTab, isOnline]);
 
-  // GPS Native Tracking Perangkat (Berjalan tanpa internet via Hardware Chip GPS)
   useEffect(() => {
     if (initialPolygon && initialPolygon.length > 0) return;
     if (!("geolocation" in navigator)) return;
@@ -218,7 +220,6 @@ export default function MapWorkspace({
     }
   };
 
-  // 🌟 PROSES SIMPAN KOORDINAT DENGAN OFFLINE WEATHER FALLBACK
   const handleSaveWorkspace = async () => {
     if (polygonCoords.length < 3) {
       Swal.fire('Aturan Validasi Spasial', 'Lahan wajib berbentuk poligon tertutup (minimal 3 titik koordinat)!', 'warning');
@@ -245,7 +246,6 @@ export default function MapWorkspace({
       }
     }
 
-    // Ambil data cache jika offline atau API gagal
     let cachedTemp = 22.77;
     let cachedHumidity = 84;
     let cachedRain = 0;
@@ -278,6 +278,8 @@ export default function MapWorkspace({
       average_temperature: finalTemp,
       average_humidity: finalHumidity,
       average_monthly_precipitation: finalRain,
+      agro_polygon_id: selectedLandData?.agro_polygon_id ?? null,
+      current_ndvi: selectedLandData?.current_ndvi ?? null,
     };
 
     if (!isOnline) {
@@ -300,7 +302,6 @@ export default function MapWorkspace({
       <div className="flex items-center justify-between px-2 pt-2">
         <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Lokasi dan Koordinat Lahan</h4>
         
-        {/* Indikator Status Jaringan PWA */}
         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
           isOnline ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
         }`}>
@@ -309,7 +310,6 @@ export default function MapWorkspace({
         </span>
       </div>
       
-      {/* PETA CONTAINER */}
       <div 
         ref={workspaceRef}
         className={`bg-white relative shadow-sm overflow-hidden border border-zinc-200 transition-all ${
@@ -329,7 +329,6 @@ export default function MapWorkspace({
           activeTab={activeTab} 
         />
 
-        {/* Info GPS */}
         <div className="absolute top-4 left-4 z-[1000] bg-white/95 text-zinc-700 p-3 rounded-xl text-[11px] font-bold space-y-1 backdrop-blur-sm border border-zinc-200 shadow-sm">
           <div className="flex items-center gap-1.5 text-emerald-600">
             <div className={`h-1.5 w-1.5 rounded-full bg-emerald-500 ${activeTab !== 'sudah' && 'animate-ping'}`}></div>
@@ -340,7 +339,6 @@ export default function MapWorkspace({
           </p>
         </div>
 
-        {/* Kontrol Kanan */}
         <div className="absolute top-4 right-4 z-[1000] flex flex-col items-end gap-2">
           <div className="bg-white/95 border border-zinc-200 p-1 rounded-xl flex flex-col gap-1 shadow-sm backdrop-blur-sm">
             <button type="button" onClick={() => setZoomAction(prev => ({ type: 'in', id: prev.id + 1 }))} className="w-6 h-6 flex items-center justify-center font-bold text-sm text-zinc-600 hover:bg-zinc-100 rounded-md transition">+</button>
@@ -350,7 +348,6 @@ export default function MapWorkspace({
           </div>
         </div>
 
-        {/* Tombol Aksi Melayang */}
         <div className="absolute bottom-4 left-4 right-4 z-[1000]">
           {activeTab === 'belum' && (
             <div className="flex gap-2 justify-center max-w-xs mx-auto">
@@ -372,7 +369,6 @@ export default function MapWorkspace({
         </div>
       </div>
 
-      {/* METRICS KOORDINAT */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-zinc-50 p-2.5 rounded-xl border border-zinc-200 text-center">
           <p className="text-[10px] font-medium text-zinc-400">Luas Area</p>
@@ -390,14 +386,14 @@ export default function MapWorkspace({
         </div>
       </div>
 
-      {/* KAD STATISTIK IKLIM */}
+      {/* Diteruskan prop currentNdvi */}
       <MacroClimateStats 
         avgTemp={macroClimate.avgTemp}
         avgHumidity={macroClimate.avgHumidity}
         avgRain={macroClimate.avgRain}
+        currentNdvi={currentNdvi}
       />
 
-      {/* FOOTER BUTTONS */}
       <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-100 px-1">
         <button
           type="button"

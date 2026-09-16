@@ -15,6 +15,7 @@ import {
 import { Farmer, Plant } from '@/app/types/farmer'; 
 import AddPlantForm from './AddPlantForm';
 import PlantCard from './PlantCard';
+import LandGrowthChart from './LandGrowthChart';
 
 interface FarmerPlantDetailProps {
   selectedFarmer: Farmer | null;
@@ -59,6 +60,15 @@ export default function FarmerPlantDetail({
   
   const [editingPlant, setEditingPlant] = useState<(Plant & { land_id: number }) | null>(null);
   const [searchLocation, setSearchLocation] = useState('');
+
+  const [targetLandId, setTargetLandId] = useState<number | null>(null);
+
+// 2. Fungsi pembantu untuk membuka form tambah berdasarkan Lahan spesifik
+const handleOpenAddForm = (landId?: number) => {
+  setEditingPlant(null);
+  setTargetLandId(landId || (landList[0]?.id ?? null));
+  setIsAdding(true);
+};
 
   // ==========================================
   // FUNGSI HANDLER DITEMPATKAN DI ATAS
@@ -217,66 +227,102 @@ export default function FarmerPlantDetail({
         </div>
       </div>
 
-      {/* Tombol Tambah Tanaman */}
-      {!isAdding && (
-        <div className="flex justify-end">
+      {/* Tombol Tambah Tanaman Umum */}
+{!isAdding && (
+  <div className="flex justify-end">
+    <button
+      onClick={() => handleOpenAddForm(landList[0]?.id)}
+      className="bg-[#05643c] hover:bg-[#044e2e] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm"
+    >
+      <FaPlus />
+      <span>Tambah Tanaman</span>
+    </button>
+  </div>
+)}
+
+{/* Render AddPlantForm dengan prop initialLandId */}
+{isAdding && (
+  <AddPlantForm
+    lands={landList}
+    initialLandId={editingPlant ? editingPlant.land_id : targetLandId}
+    onCancel={handleCancelForm}
+    onSave={onSavePlant} 
+    editingPlant={editingPlant}
+    onUpdate={onUpdatePlant}
+  />
+)}
+{/* 3. Container Utama Grouping Per Lahan */}
+<div className="space-y-4">
+  {landList.map((land) => (
+    <div key={land.id} className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-xs space-y-4">
+      
+      {/* 1. INFORMASI DETAIL LAHAN (HEADER ATAS) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-100">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-zinc-800">
+              {land.land_name || `Lahan #${land.id}`}
+            </h3>
+            <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-md border border-emerald-100/60">
+              {land.area} Ha
+            </span>
+          </div>
+          <p className="text-xs text-zinc-400 mt-1 flex items-center gap-1">
+            <FaMapMarkerAlt className="text-[10px]" />
+            {land.location_address || 'Alamat belum diset'}
+          </p>
+        </div>
+
+        {/* TOMBOL TAMBAH TANAMAN */}
+        <div className="flex items-center justify-end">
           <button
-            onClick={() => { setEditingPlant(null); setIsAdding(true); }}
-            className="bg-[#05643c] hover:bg-[#044e2e] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm"
+            onClick={() => handleOpenAddForm(land.id)}
+            className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100/70 px-3 py-1.5 rounded-lg transition"
           >
-            <FaPlus />
-            <span>Tambah Tanaman</span>
+            <FaPlus className="text-[10px]" />
+            <span>Tambah Tanaman ke Lahan Ini</span>
           </button>
         </div>
-      )}
+      </div>
 
-      {/* Form Dialog */}
-      {isAdding && (
-        <AddPlantForm
-          lands={landList}
-          onCancel={handleCancelForm}
-          onSave={onSavePlant} 
-          editingPlant={editingPlant}
-          onUpdate={onUpdatePlant}
-        />
-      )}
+      {/* 2. GRAFIK TREN NDVI (MEMBENTANG PENUH DI BAWAH INFO LAHAN) */}
+      <div className="w-full">
+        <LandGrowthChart landId={land.id} />
+      </div>
 
-      {/* 3. Container Utama List Tanaman */}
-      <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-xs space-y-4">
-        {/* Input Pencarian Lahan */}
-        <div className="relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-400 text-xs">
-            <FaSearch />
-          </span>
-          <input
-            type="text"
-            placeholder="Cari berdasarkan nama lahan atau alamat lokasi..."
-            value={searchLocation}
-            onChange={(e) => setSearchLocation(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs border border-zinc-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-zinc-50/50"
-          />
-        </div>
-
-        {/* List Baris Tanaman Terintegrasi */}
-        <div className="space-y-3">
-          {filteredPlants.map((plantItem) => (
+      {/* 3. DAFTAR TANAMAN DI LAHAN INI */}
+      <div className="space-y-2 pt-2">
+        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+          Tanaman Terdaftar:
+        </p>
+        {land.plants && land.plants.length > 0 ? (
+          land.plants.map((plant) => (
             <PlantCard 
-              key={plantItem.id}
-              plant={plantItem}
+              key={plant.id}
+              plant={{
+                ...plant,
+                land_id: land.id,
+                land_name: land.land_name,
+                land_area: land.area,
+                location_address: land.location_address,
+                polygon_coordinates: land.polygon_coordinates,
+                village_name: selectedFarmer?.village?.name
+              }}
               onDeleteSinglePlant={onDeletePlant}
               onEditPlant={handleEditClick}
             />
-          ))}
-
-          {/* Fallback Jika Tidak Ada Data Tanaman */}
-          {filteredPlants.length === 0 && (
-            <div className="text-center py-12 border border-dashed border-zinc-200 rounded-2xl flex flex-col items-center justify-center">
-              <span className="text-2xl mb-2">🌱</span>
-              <p className="text-xs text-zinc-400 font-bold">Belum ada komoditas tanaman terdaftar di lahan manapun</p>
-            </div>
-          )}
-        </div>
+          ))
+        ) : (
+          <p className="text-xs text-zinc-400 italic bg-zinc-50/50 p-3 rounded-xl border border-dashed border-zinc-200">
+            Belum ada tanaman di lahan ini.
+          </p>
+        )}
       </div>
+
+    </div>
+
+  ))}
+</div>
     </div>
   );
 }

@@ -71,4 +71,12 @@ class Farmer extends Model
     {
         return $this->hasMany(Transaction::class, 'farmer_id');
     }
+
+    /**
+     * Relasi ke Riwayat Pemupukan Petani
+     */
+    public function fertilizerHistories(): HasMany
+    {
+        return $this->hasMany(FertilizerHistory::class);
+    }
 }

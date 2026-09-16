@@ -33,7 +33,9 @@ class Land extends Model
         'center_longitude',
         'average_temperature',
         'average_humidity',
-        'average_monthly_precipitation'
+        'average_monthly_precipitation',
+        'agro_polygon_id', 
+        'current_ndvi',
     ];
 
     protected $casts = [
@@ -83,5 +85,10 @@ class Land extends Model
     public function mlLogs(): HasMany
     {
         return $this->hasMany(TransactionMlLog::class);
+    }
+
+    public function fertilizerHistories(): HasMany
+    {
+        return $this->hasMany(FertilizerHistory::class);
     }
 }

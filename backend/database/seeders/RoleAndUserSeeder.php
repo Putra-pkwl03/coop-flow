@@ -63,7 +63,7 @@ class RoleAndUserSeeder extends Seeder
 
         // ---  Akun Petugas Koperasi ---
         $petugasKoperasi = User::firstOrCreate(
-            ['email' => 'koperasi@coopflow.id'],
+            ['email' => 'riznalprakon@gmail.com'],
             [
                 'name' => 'Siti Aminah (Petugas Koperasi)',
                 'password' => Hash::make('password123'),
@@ -84,7 +84,7 @@ class RoleAndUserSeeder extends Seeder
 
         // ---  Akun Dinas Pertanian ---
         $dinasPertanian = User::firstOrCreate(
-            ['email' => 'dinas.pertanian@go.id'],
+            ['email' => 'putrapongkowulu@gmail.com'],
             [
                 'name' => 'Ir. Ahmad Subarjo (Dinas Pertanian)',
                 'password' => Hash::make('password123'),
@@ -103,7 +103,7 @@ class RoleAndUserSeeder extends Seeder
 
         // ---  Akun Kemenko Pangan ---
         $kemenkoPangan = User::firstOrCreate(
-            ['email' => 'kemenko.pangan@go.id'],
+            ['email' => 'febipurti855@gmail.com'],
             [
                 'name' => 'Dr. Hendra Wijaya (Kemenko Pangan)',
                 'password' => Hash::make('password123'),
