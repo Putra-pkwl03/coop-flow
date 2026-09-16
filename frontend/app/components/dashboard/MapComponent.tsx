@@ -132,7 +132,7 @@ export default function MapComponent({ farmers }: MapComponentProps) {
   useEffect(() => {
     if (showNdvi && !globalNdviTileUrl && !loadingNdvi) {
       setLoadingNdvi(true);
-      api.get('/lands/all-ndvi-map-tile')
+      api.get('/v1/lands/all-ndvi-map-tile')
         .then((res) => {
           if (res.data && res.data.success && res.data.data?.tile_url) {
             setGlobalNdviTileUrl(res.data.data.tile_url);
