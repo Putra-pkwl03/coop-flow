@@ -374,178 +374,352 @@ class FarmerController extends Controller
     }
 
 
-// Tambahkan deklarasi method/function ini sebelum variabel $daysBack:
-    public function getNdviHistory(Request $request, $id)
-    {
-        $land = Land::find($id);
+// // Tambahkan deklarasi method/function ini sebelum variabel $daysBack:
+//     public function getNdviHistory(Request $request, $id)
+//     {
+//         $land = Land::find($id);
 
-        if (!$land) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data lahan tidak ditemukan.'
-            ], 404);
-        }
+//         if (!$land) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Data lahan tidak ditemukan.'
+//             ], 404);
+//         }
 
-        $rawCoords = $land->polygon_coordinates;
+//         $rawCoords = $land->polygon_coordinates;
 
-        if (empty($rawCoords) || !is_array($rawCoords)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Lahan belum memiliki koordinat poligon.'
-            ], 400);
-        }
+//         if (empty($rawCoords) || !is_array($rawCoords)) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Lahan belum memiliki koordinat poligon.'
+//             ], 400);
+//         }
 
-        // Mengambil parameter rentang hari (default 90 hari)
-        $daysBack = (int) $request->input('days_back', 90);
+//         // Mengambil parameter rentang hari (default 90 hari)
+//         $daysBack = (int) $request->input('days_back', 90);
 
-        // Cache key unik berdasarkan ID Lahan & Jumlah hari
-        $cacheKey = "land_ndvi_history_{$land->id}_days{$daysBack}";
+//         // Cache key unik berdasarkan ID Lahan & Jumlah hari
+//         $cacheKey = "land_ndvi_history_{$land->id}_days{$daysBack}";
 
-        try {
-            $historyData = Cache::remember($cacheKey, now()->addHours(12), function () use ($rawCoords, $daysBack) {
+//         try {
+//             $historyData = Cache::remember($cacheKey, now()->addHours(12), function () use ($rawCoords, $daysBack) {
                 
-                // Normalisasi Koordinat ke GeoJSON [Longitude, Latitude]
-                $fixedCoords = [];
-                foreach ($rawCoords as $pt) {
-                    $val1 = (float) $pt[0];
-                    $val2 = (float) $pt[1];
+//                 // Normalisasi Koordinat ke GeoJSON [Longitude, Latitude]
+//                 $fixedCoords = [];
+//                 foreach ($rawCoords as $pt) {
+//                     $val1 = (float) $pt[0];
+//                     $val2 = (float) $pt[1];
                     
-                    // Cek jika Latitude & Longitude terbalik
-                    if ($val1 < 10 && $val2 > 90) {
-                        $fixedCoords[] = [$val2, $val1]; 
-                    } else {
-                        $fixedCoords[] = [$val1, $val2];
-                    }
-                }
+//                     // Cek jika Latitude & Longitude terbalik
+//                     if ($val1 < 10 && $val2 > 90) {
+//                         $fixedCoords[] = [$val2, $val1]; 
+//                     } else {
+//                         $fixedCoords[] = [$val1, $val2];
+//                     }
+//                 }
                 
-                // Pastikan Poligon Tertutup (Titik awal == Titik akhir)
-                if ($fixedCoords[0] !== end($fixedCoords)) {
-                    $fixedCoords[] = $fixedCoords[0];
-                }
+//                 // Pastikan Poligon Tertutup (Titik awal == Titik akhir)
+//                 if ($fixedCoords[0] !== end($fixedCoords)) {
+//                     $fixedCoords[] = $fixedCoords[0];
+//                 }
 
-                $baseUrl = config('services.fastapi.base_url', env('FASTAPI_BASE_URL', 'http://ml-engine:8000'));
+//                 $baseUrl = config('services.fastapi.base_url', env('FASTAPI_BASE_URL', 'http://ml-engine:8000'));
 
-                // Tembak endpoint histori NDVI di FastAPI Python
-                $response = Http::timeout(60)->post("{$baseUrl}/api/v1/land/ndvi-history", [
-                    'coordinates' => $fixedCoords,
-                    'days_back'   => $daysBack,
-                ]);
+//                 // Tembak endpoint histori NDVI di FastAPI Python
+//                 $response = Http::timeout(60)->post("{$baseUrl}/api/v1/land/ndvi-history", [
+//                     'coordinates' => $fixedCoords,
+//                     'days_back'   => $daysBack,
+//                 ]);
 
-                if ($response->successful()) {
-                    return $response->json();
-                }
+//                 if ($response->successful()) {
+//                     return $response->json();
+//                 }
 
-                throw new \Exception("Gagal mengambil data histori NDVI dari FastAPI Service.");
-            });
+//                 throw new \Exception("Gagal mengambil data histori NDVI dari FastAPI Service.");
+//             });
 
-            return response()->json([
-                'success' => true,
-                'data'    => $historyData['data'] ?? []
-            ], 200);
+//             return response()->json([
+//                 'success' => true,
+//                 'data'    => $historyData['data'] ?? []
+//             ], 200);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan saat mengambil histori pertumbuhan.',
-                'error'   => $e->getMessage()
-            ], 500);
-        }
-    } 
+//         } catch (\Exception $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Terjadi kesalahan saat mengambil histori pertumbuhan.',
+//                 'error'   => $e->getMessage()
+//             ], 500);
+//         }
+//     } 
 
-    /**
-     * Mengambil 1 URL Tile Peta NDVI Gabungan untuk Seluruh Lahan
-     */
-    public function getAllLandsNdviTile(Request $request)
-    {
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+//     /**
+//      * Mengambil 1 URL Tile Peta NDVI Gabungan untuk Seluruh Lahan
+//      */
+//     public function getAllLandsNdviTile(Request $request)
+//     {
+//         $startDate = $request->input('start_date');
+//         $endDate = $request->input('end_date');
 
-        // Ambil semua lahan yang punya koordinat
-        $lands = Land::whereNotNull('polygon_coordinates')->get();
+//         // Ambil semua lahan yang punya koordinat
+//         $lands = Land::whereNotNull('polygon_coordinates')->get();
 
-        if ($lands->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Belum ada data lahan berkoordinat.'
-            ], 400);
-        }
+//         if ($lands->isEmpty()) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Belum ada data lahan berkoordinat.'
+//             ], 400);
+//         }
 
-        $allPolygons = [];
+//         $allPolygons = [];
 
-        foreach ($lands as $land) {
-            $rawCoords = $land->polygon_coordinates;
+//         foreach ($lands as $land) {
+//             $rawCoords = $land->polygon_coordinates;
 
-            // FIX 1: Decode manual jika data dari DB masih bertipe String JSON
-            if (is_string($rawCoords)) {
-                $rawCoords = json_decode($rawCoords, true);
-            }
+//             // FIX 1: Decode manual jika data dari DB masih bertipe String JSON
+//             if (is_string($rawCoords)) {
+//                 $rawCoords = json_decode($rawCoords, true);
+//             }
 
-            if (empty($rawCoords) || !is_array($rawCoords)) continue;
+//             if (empty($rawCoords) || !is_array($rawCoords)) continue;
 
+//             $fixedCoords = [];
+//             foreach ($rawCoords as $pt) {
+//                 $val1 = (float) $pt[0];
+//                 $val2 = (float) $pt[1];
+
+//                 // FIX 2: Cek akurat rentang Latitude Indonesia (-11 s/d 6) & Longitude (95 s/d 141)
+//                 // Jika val1 adalah Latitude (negatif), tukar ke [Lng, Lat]
+//                 if ($val1 >= -11 && $val1 <= 6 && $val2 >= 95 && $val2 <= 141) {
+//                     $fixedCoords[] = [$val2, $val1]; 
+//                 } else {
+//                     $fixedCoords[] = [$val1, $val2];
+//                 }
+//             }
+
+//             // Pastikan poligon tertutup (titik awal = titik akhir)
+//             if (count($fixedCoords) > 0 && $fixedCoords[0] !== end($fixedCoords)) {
+//                 $fixedCoords[] = $fixedCoords[0];
+//             }
+
+//             if (count($fixedCoords) >= 4) {
+//                 $allPolygons[] = $fixedCoords;
+//             }
+//         }
+
+//         if (empty($allPolygons)) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Format koordinat lahan tidak valid.'
+//             ], 400);
+//         }
+
+//         // Cache hasil Tile URL gabungan selama 6 jam
+//         $cacheKey = "all_lands_ndvi_tile_" . md5(json_encode($allPolygons)) . "_" . ($startDate ?? 'def') . "_" . ($endDate ?? 'def');
+
+//         try {
+//             $tileData = Cache::remember($cacheKey, now()->addHours(6), function () use ($allPolygons, $startDate, $endDate) {
+//                 $baseUrl = config('services.fastapi.base_url', env('FASTAPI_BASE_URL', 'http://127.0.0.1:8000'));
+
+//                 $payload = ['polygons' => $allPolygons];
+//                 if ($startDate) $payload['start_date'] = $startDate;
+//                 if ($endDate) $payload['end_date'] = $endDate;
+
+//                 $response = Http::timeout(60)->post("{$baseUrl}/api/v1/lands/all-ndvi-map-tile", $payload);
+
+//                 if ($response->successful()) {
+//                     return $response->json();
+//                 }
+
+//                 throw new \Exception("Gagal mengambil Tile Peta NDVI dari FastAPI Service.");
+//             });
+
+//             return response()->json([
+//                 'success' => true,
+//                 'data'    => $tileData['data'] ?? []
+//             ], 200);
+
+//         } catch (\Exception $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Terjadi kesalahan saat memuat peta visual seluruh lahan.',
+//                 'error'   => $e->getMessage()
+//             ], 500);
+//         }
+//     }
+
+
+public function getNdviHistory(Request $request, $id)
+{
+    $land = Land::find($id);
+
+    if (!$land) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Data lahan tidak ditemukan.'
+        ], 404);
+    }
+
+    $rawCoords = $land->polygon_coordinates;
+
+    if (is_string($rawCoords)) {
+        $rawCoords = json_decode($rawCoords, true);
+    }
+
+    if (empty($rawCoords) || !is_array($rawCoords)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lahan belum memiliki koordinat poligon.'
+        ], 400);
+    }
+
+    $daysBack = (int) $request->input('days_back', 90);
+    $cacheKey = "land_ndvi_history_{$land->id}_days{$daysBack}";
+
+    try {
+        $historyData = Cache::remember($cacheKey, now()->addHours(12), function () use ($rawCoords, $daysBack) {
+            
             $fixedCoords = [];
             foreach ($rawCoords as $pt) {
                 $val1 = (float) $pt[0];
                 $val2 = (float) $pt[1];
-
-                // FIX 2: Cek akurat rentang Latitude Indonesia (-11 s/d 6) & Longitude (95 s/d 141)
-                // Jika val1 adalah Latitude (negatif), tukar ke [Lng, Lat]
+                
                 if ($val1 >= -11 && $val1 <= 6 && $val2 >= 95 && $val2 <= 141) {
                     $fixedCoords[] = [$val2, $val1]; 
                 } else {
                     $fixedCoords[] = [$val1, $val2];
                 }
             }
-
-            // Pastikan poligon tertutup (titik awal = titik akhir)
-            if (count($fixedCoords) > 0 && $fixedCoords[0] !== end($fixedCoords)) {
-                $fixedCoords[] = $fixedCoords[0];
-            }
-
-            if (count($fixedCoords) >= 4) {
-                $allPolygons[] = $fixedCoords;
-            }
-        }
-
-        if (empty($allPolygons)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Format koordinat lahan tidak valid.'
-            ], 400);
-        }
-
-        // Cache hasil Tile URL gabungan selama 6 jam
-        $cacheKey = "all_lands_ndvi_tile_" . md5(json_encode($allPolygons)) . "_" . ($startDate ?? 'def') . "_" . ($endDate ?? 'def');
-
-        try {
-            $tileData = Cache::remember($cacheKey, now()->addHours(6), function () use ($allPolygons, $startDate, $endDate) {
-                $baseUrl = config('services.fastapi.base_url', env('FASTAPI_BASE_URL', 'http://127.0.0.1:8000'));
-
-                $payload = ['polygons' => $allPolygons];
-                if ($startDate) $payload['start_date'] = $startDate;
-                if ($endDate) $payload['end_date'] = $endDate;
-
-                $response = Http::timeout(60)->post("{$baseUrl}/api/v1/lands/all-ndvi-map-tile", $payload);
-
-                if ($response->successful()) {
-                    return $response->json();
+            
+            // Penutupan poligon yang aman
+            $count = count($fixedCoords);
+            if ($count >= 3) {
+                $first = $fixedCoords[0];
+                $last = $fixedCoords[$count - 1];
+                if ($first[0] != $last[0] || $first[1] != $last[1]) {
+                    $fixedCoords[] = $first;
                 }
+            }
 
-                throw new \Exception("Gagal mengambil Tile Peta NDVI dari FastAPI Service.");
-            });
+            // Default URL diarahkan ke FastAPI di Railway
+            $defaultUrl = 'https://fast-api-production-v1.up.railway.app';
+            $baseUrl = config('services.fastapi.base_url', env('FASTAPI_BASE_URL', $defaultUrl));
 
-            return response()->json([
-                'success' => true,
-                'data'    => $tileData['data'] ?? []
-            ], 200);
+            $response = Http::timeout(60)->post("{$baseUrl}/api/v1/land/ndvi-history", [
+                'coordinates' => $fixedCoords,
+                'days_back'   => $daysBack,
+            ]);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan saat memuat peta visual seluruh lahan.',
-                'error'   => $e->getMessage()
-            ], 500);
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            throw new \Exception("Gagal mengambil data histori NDVI dari FastAPI Service: " . $response->body());
+        });
+
+        return response()->json([
+            'success' => true,
+            'data'    => $historyData['data'] ?? []
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan saat mengambil histori pertumbuhan.',
+            'error'   => $e->getMessage()
+        ], 500);
+    }
+} 
+
+public function getAllLandsNdviTile(Request $request)
+{
+    $startDate = $request->input('start_date');
+    $endDate = $request->input('end_date');
+
+    $lands = Land::whereNotNull('polygon_coordinates')->get();
+
+    if ($lands->isEmpty()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Belum ada data lahan berkoordinat.'
+        ], 400);
+    }
+
+    $allPolygons = [];
+
+    foreach ($lands as $land) {
+        $rawCoords = $land->polygon_coordinates;
+
+        if (is_string($rawCoords)) {
+            $rawCoords = json_decode($rawCoords, true);
+        }
+
+        if (empty($rawCoords) || !is_array($rawCoords)) continue;
+
+        $fixedCoords = [];
+        foreach ($rawCoords as $pt) {
+            $val1 = (float) $pt[0];
+            $val2 = (float) $pt[1];
+
+            if ($val1 >= -11 && $val1 <= 6 && $val2 >= 95 && $val2 <= 141) {
+                $fixedCoords[] = [$val2, $val1]; 
+            } else {
+                $fixedCoords[] = [$val1, $val2];
+            }
+        }
+
+        $count = count($fixedCoords);
+        if ($count >= 3) {
+            $first = $fixedCoords[0];
+            $last = $fixedCoords[$count - 1];
+            if ($first[0] != $last[0] || $first[1] != $last[1]) {
+                $fixedCoords[] = $first;
+            }
+            $allPolygons[] = $fixedCoords;
         }
     }
+
+    if (empty($allPolygons)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Format koordinat lahan tidak valid.'
+        ], 400);
+    }
+
+    $cacheKey = "all_lands_ndvi_tile_" . md5(json_encode($allPolygons)) . "_" . ($startDate ?? 'def') . "_" . ($endDate ?? 'def');
+
+    try {
+        $tileData = Cache::remember($cacheKey, now()->addHours(6), function () use ($allPolygons, $startDate, $endDate) {
+            
+            // Default URL diarahkan ke FastAPI di Railway
+            $defaultUrl = 'https://fast-api-production-v1.up.railway.app';
+            $baseUrl = config('services.fastapi.base_url', env('FASTAPI_BASE_URL', $defaultUrl));
+
+            $payload = ['polygons' => $allPolygons];
+            if ($startDate) $payload['start_date'] = $startDate;
+            if ($endDate) $payload['end_date'] = $endDate;
+
+            $response = Http::timeout(60)->post("{$baseUrl}/api/v1/lands/all-ndvi-map-tile", $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            throw new \Exception("Gagal mengambil Tile Peta NDVI dari FastAPI Service: " . $response->body());
+        });
+
+        return response()->json([
+            'success' => true,
+            'data'    => $tileData['data'] ?? []
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan saat memuat peta visual seluruh lahan.',
+            'error'   => $e->getMessage()
+        ], 500);
+    }
+}
 
     public function destroy($id)
     {
