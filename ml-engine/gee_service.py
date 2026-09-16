@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 from typing import List, Optional
 
-# KEY_FILE = os.path.join(os.path.dirname(__file__), 'credentials', 'gee-key.json')
+KEY_FILE = os.path.join(os.path.dirname(__file__), 'credentials', 'gee-key.json')
 
 # def init_gee():
 #     try:
@@ -17,37 +17,31 @@ from typing import List, Optional
 #         else:
 #             raise FileNotFoundError(f"File kredensial GEE tidak ditemukan di: {KEY_FILE}")
 
-# 1. Ambil path lokal untuk lingkungan development komputer kamu
-KEY_FILE = os.path.join(os.path.dirname(__file__), 'credentials', 'gee-key.json')
-
 def init_gee():
     try:
-        # Coba inisialisasi biasa (misal jika sudah ter-login di server)
         ee.Initialize()
     except Exception:
-        # Pilihan A: Cek apakah ada Environment Variable dari Railway (Production)
         gcp_sa_key = os.environ.get("GCP_SA_KEY")
         
         if gcp_sa_key:
-            # Mengubah string JSON dari Railway menjadi dictionary Python
-            service_account_info = json.loads(gcp_sa_key)
+            # Clean up escape character \n
+            gcp_sa_key_clean = gcp_sa_key.replace('\\n', '\n')
+            sa_info = json.loads(gcp_sa_key_clean)
+            
+            # Lewatkan email dan private_key secara spesifik
             credentials = ee.ServiceAccountCredentials(
-                email=service_account_info["client_email"],
-                key_data=gcp_sa_key
+                email=sa_info["client_email"],
+                key_data=sa_info["private_key"] # Menggunakan string private_key langsung
             )
             ee.Initialize(credentials=credentials)
-            
-        # Pilihan B: Fallback jika dijalankan di Komputer Lokal (Local Development)
-        elif os.path.exists(KEY_FILE):
-            credentials = ee.ServiceAccountCredentials(email=None, key_file=KEY_FILE)
-            ee.Initialize(credentials=credentials)
-            
-        # Pilihan C: Jika kunci tidak ditemukan sama sekali
+            print("INFO: GEE initialized successfully via GCP_SA_KEY.")
         else:
-            raise FileNotFoundError(
-                "Kredensial GEE tidak ditemukan! Pastikan 'GCP_SA_KEY' sudah diset di Railway "
-                f"atau file '{KEY_FILE}' ada di lokal."
-            )
+            KEY_FILE = os.path.join(os.path.dirname(__file__), "credentials", "gee-key.json")
+            if os.path.exists(KEY_FILE):
+                credentials = ee.ServiceAccountCredentials(email=None, key_file=KEY_FILE)
+                ee.Initialize(credentials=credentials)
+            else:
+                raise RuntimeError("Credentials not found!")
 
 def mask_s2_clouds_scl(image):
     """
