@@ -1,0 +1,3 @@
+# Mengabaikan file credential
+ml-engine/credentials/*.json
+*.json
