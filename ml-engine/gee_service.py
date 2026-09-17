@@ -17,18 +17,31 @@ from typing import List, Optional
 #         else:
 #             raise FileNotFoundError(f"File kredensial GEE tidak ditemukan di: {KEY_FILE}")
 
-google_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+def init_gee():
+    """Menginisialisasi GEE dari Environment Variable Railway."""
+    # Cek jika kredensial GEE sudah aktif
+    if getattr(ee.data, '_credentials', None) is not None:
+        return
 
-if google_json:
-    service_account_info = json.loads(google_json)
-    credentials = ee.ServiceAccountCredentials(
-        service_account_info['client_email'],
-        key_data=google_json
-    )
-    ee.Initialize(credentials)
-    print("Inisialisasi GEE Berhasil via Environment Variable!")
-else:
-    print("WARNING: Credentials not found!")
+    google_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+
+    if google_json:
+        try:
+            # Mengatasi issue newline string (\n) dari Railway Variables
+            google_json_cleaned = google_json.replace('\\n', '\n')
+            service_account_info = json.loads(google_json_cleaned)
+            
+            credentials = ee.ServiceAccountCredentials(
+                service_account_info['client_email'],
+                key_data=json.dumps(service_account_info)
+            )
+            ee.Initialize(credentials)
+            print("INFO: Inisialisasi GEE Berhasil via Environment Variable!")
+        except Exception as e:
+            print(f"ERROR GEE Init: {str(e)}")
+            raise Exception(f"Gagal memproses JSON Service Account: {str(e)}")
+    else:
+        raise FileNotFoundError("Environment Variable GOOGLE_APPLICATION_CREDENTIALS_JSON tidak ditemukan!")
 
 def mask_s2_clouds_scl(image):
     """
