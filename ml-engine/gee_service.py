@@ -87,6 +87,8 @@ def extract_ndvi_stats(image, aoi, raw_aoi):
         
     return round(val, 4) if val is not None else None
 
+    
+
 def calculate_land_ndvi(polygon_coordinates: list, start_date: str = None, end_date: str = None):
     """Menganalisis indeks vegetasi (NDVI) dan status aktif tanaman."""
     init_gee()
