@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 from typing import List, Optional
 
-KEY_FILE = os.path.join(os.path.dirname(__file__), 'credentials', 'gee-key.json')
+# KEY_FILE = os.path.join(os.path.dirname(__file__), 'credentials', 'gee-key.json')
 
 # def init_gee():
 #     try:
@@ -17,31 +17,18 @@ KEY_FILE = os.path.join(os.path.dirname(__file__), 'credentials', 'gee-key.json'
 #         else:
 #             raise FileNotFoundError(f"File kredensial GEE tidak ditemukan di: {KEY_FILE}")
 
-def init_gee():
-    try:
-        ee.Initialize()
-    except Exception:
-        gcp_sa_key = os.environ.get("GCP_SA_KEY")
-        
-        if gcp_sa_key:
-            # Clean up escape character \n
-            gcp_sa_key_clean = gcp_sa_key.replace('\\n', '\n')
-            sa_info = json.loads(gcp_sa_key_clean)
-            
-            # Lewatkan email dan private_key secara spesifik
-            credentials = ee.ServiceAccountCredentials(
-                email=sa_info["client_email"],
-                key_data=sa_info["private_key"] # Menggunakan string private_key langsung
-            )
-            ee.Initialize(credentials=credentials)
-            print("INFO: GEE initialized successfully via GCP_SA_KEY.")
-        else:
-            KEY_FILE = os.path.join(os.path.dirname(__file__), "credentials", "gee-key.json")
-            if os.path.exists(KEY_FILE):
-                credentials = ee.ServiceAccountCredentials(email=None, key_file=KEY_FILE)
-                ee.Initialize(credentials=credentials)
-            else:
-                raise RuntimeError("Credentials not found!")
+google_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+
+if google_json:
+    service_account_info = json.loads(google_json)
+    credentials = ee.ServiceAccountCredentials(
+        service_account_info['client_email'],
+        key_data=google_json
+    )
+    ee.Initialize(credentials)
+    print("Inisialisasi GEE Berhasil via Environment Variable!")
+else:
+    print("WARNING: Credentials not found!")
 
 def mask_s2_clouds_scl(image):
     """
