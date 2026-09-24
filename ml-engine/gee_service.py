@@ -1,9 +1,9 @@
-import os
-import ee
-import json
-from datetime import datetime, timedelta
-from pydantic import BaseModel
-from typing import List, Optional
+# import os
+# import ee
+# import json
+# from datetime import datetime, timedelta
+# from pydantic import BaseModel
+# from typing import List, Optional
 
 # KEY_FILE = os.path.join(os.path.dirname(__file__), 'credentials', 'gee-key.json')
 
@@ -17,31 +17,52 @@ from typing import List, Optional
 #         else:
 #             raise FileNotFoundError(f"File kredensial GEE tidak ditemukan di: {KEY_FILE}")
 
+
+
+import os
+import ee
+import json
+from datetime import datetime, timedelta
+from pydantic import BaseModel
+from typing import List, Optional
+
+# Path file lokal untuk fallback saat development di mesin lokal
+KEY_FILE = os.path.join(os.path.dirname(__file__), 'credentials', 'gee-key.json')
+
 def init_gee():
-    """Menginisialisasi GEE dari Environment Variable Railway."""
-    # Cek jika kredensial GEE sudah aktif
-    if getattr(ee.data, '_credentials', None) is not None:
-        return
+    try:
+        # Coba inisialisasi biasa jika sudah terautentikasi di sistem
+        ee.Initialize()
+    except Exception:
+        # 1. Prioritas Utama (Untuk Railway / Production): Ambil dari Environment Variable
+        gee_json_env = os.getenv("GEE_SERVICE_ACCOUNT_JSON")
+        
+        if gee_json_env:
+            try:
+                # Parse string JSON dari Environment Variable
+                key_dict = json.loads(gee_json_env)
+                
+                # Format karakter newline '\n' pada private_key jika ter-escape
+                if "private_key" in key_dict:
+                    key_dict["private_key"] = key_dict["private_key"].replace("\\n", "\n")
+                
+                credentials = ee.ServiceAccountCredentials(
+                    email=key_dict.get("client_email"),
+                    key_data=json.dumps(key_dict)
+                )
+                ee.Initialize(credentials=credentials)
+                return
+            except Exception as e:
+                raise RuntimeError(f"Gagal memuat kredensial GEE dari Environment Variable: {e}")
 
-    google_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
-
-    if google_json:
-        try:
-            # Mengatasi issue newline string (\n) dari Railway Variables
-            google_json_cleaned = google_json.replace('\\n', '\n')
-            service_account_info = json.loads(google_json_cleaned)
-            
-            credentials = ee.ServiceAccountCredentials(
-                service_account_info['client_email'],
-                key_data=json.dumps(service_account_info)
+        # 2. Fallback (Untuk Local Development): Ambil dari file lokal
+        elif os.path.exists(KEY_FILE):
+            credentials = ee.ServiceAccountCredentials(email=None, key_file=KEY_FILE)
+            ee.Initialize(credentials=credentials)
+        else:
+            raise FileNotFoundError(
+                f"Kredensial GEE tidak ditemukan! Set GEE_SERVICE_ACCOUNT_JSON di Railway atau sediakan file di {KEY_FILE}"
             )
-            ee.Initialize(credentials)
-            print("INFO: Inisialisasi GEE Berhasil via Environment Variable!")
-        except Exception as e:
-            print(f"ERROR GEE Init: {str(e)}")
-            raise Exception(f"Gagal memproses JSON Service Account: {str(e)}")
-    else:
-        raise FileNotFoundError("Environment Variable GOOGLE_APPLICATION_CREDENTIALS_JSON tidak ditemukan!")
 
 def mask_s2_clouds_scl(image):
     """

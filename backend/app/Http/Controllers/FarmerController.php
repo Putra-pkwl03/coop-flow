@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use App\Models\FertilizerHistory;
 use Illuminate\Support\Facades\Log;
+use App\Services\FastApiService;
 
 class FarmerController extends Controller
 {
@@ -375,187 +376,12 @@ class FarmerController extends Controller
     }
 
 
-// // Tambahkan deklarasi method/function ini sebelum variabel $daysBack:
-//     public function getNdviHistory(Request $request, $id)
-//     {
-//         $land = Land::find($id);
-
-//         if (!$land) {
-//             return response()->json([
-//                 'success' => false,
-//                 'message' => 'Data lahan tidak ditemukan.'
-//             ], 404);
-//         }
-
-//         $rawCoords = $land->polygon_coordinates;
-
-//         if (empty($rawCoords) || !is_array($rawCoords)) {
-//             return response()->json([
-//                 'success' => false,
-//                 'message' => 'Lahan belum memiliki koordinat poligon.'
-//             ], 400);
-//         }
-
-//         // Mengambil parameter rentang hari (default 90 hari)
-//         $daysBack = (int) $request->input('days_back', 90);
-
-//         // Cache key unik berdasarkan ID Lahan & Jumlah hari
-//         $cacheKey = "land_ndvi_history_{$land->id}_days{$daysBack}";
-
-//         try {
-//             $historyData = Cache::remember($cacheKey, now()->addHours(12), function () use ($rawCoords, $daysBack) {
-                
-//                 // Normalisasi Koordinat ke GeoJSON [Longitude, Latitude]
-//                 $fixedCoords = [];
-//                 foreach ($rawCoords as $pt) {
-//                     $val1 = (float) $pt[0];
-//                     $val2 = (float) $pt[1];
-                    
-//                     // Cek jika Latitude & Longitude terbalik
-//                     if ($val1 < 10 && $val2 > 90) {
-//                         $fixedCoords[] = [$val2, $val1]; 
-//                     } else {
-//                         $fixedCoords[] = [$val1, $val2];
-//                     }
-//                 }
-                
-//                 // Pastikan Poligon Tertutup (Titik awal == Titik akhir)
-//                 if ($fixedCoords[0] !== end($fixedCoords)) {
-//                     $fixedCoords[] = $fixedCoords[0];
-//                 }
-
-//                 $baseUrl = config('services.fastapi.base_url', env('FASTAPI_BASE_URL', 'http://ml-engine:8000'));
-
-//                 // Tembak endpoint histori NDVI di FastAPI Python
-//                 $response = Http::timeout(60)->post("{$baseUrl}/api/v1/land/ndvi-history", [
-//                     'coordinates' => $fixedCoords,
-//                     'days_back'   => $daysBack,
-//                 ]);
-
-//                 if ($response->successful()) {
-//                     return $response->json();
-//                 }
-
-//                 throw new \Exception("Gagal mengambil data histori NDVI dari FastAPI Service.");
-//             });
-
-//             return response()->json([
-//                 'success' => true,
-//                 'data'    => $historyData['data'] ?? []
-//             ], 200);
-
-//         } catch (\Exception $e) {
-//             return response()->json([
-//                 'success' => false,
-//                 'message' => 'Terjadi kesalahan saat mengambil histori pertumbuhan.',
-//                 'error'   => $e->getMessage()
-//             ], 500);
-//         }
-//     } 
-
-//     /**
-//      * Mengambil 1 URL Tile Peta NDVI Gabungan untuk Seluruh Lahan
-//      */
-//     public function getAllLandsNdviTile(Request $request)
-//     {
-//         $startDate = $request->input('start_date');
-//         $endDate = $request->input('end_date');
-
-//         // Ambil semua lahan yang punya koordinat
-//         $lands = Land::whereNotNull('polygon_coordinates')->get();
-
-//         if ($lands->isEmpty()) {
-//             return response()->json([
-//                 'success' => false,
-//                 'message' => 'Belum ada data lahan berkoordinat.'
-//             ], 400);
-//         }
-
-//         $allPolygons = [];
-
-//         foreach ($lands as $land) {
-//             $rawCoords = $land->polygon_coordinates;
-
-//             // FIX 1: Decode manual jika data dari DB masih bertipe String JSON
-//             if (is_string($rawCoords)) {
-//                 $rawCoords = json_decode($rawCoords, true);
-//             }
-
-//             if (empty($rawCoords) || !is_array($rawCoords)) continue;
-
-//             $fixedCoords = [];
-//             foreach ($rawCoords as $pt) {
-//                 $val1 = (float) $pt[0];
-//                 $val2 = (float) $pt[1];
-
-//                 // FIX 2: Cek akurat rentang Latitude Indonesia (-11 s/d 6) & Longitude (95 s/d 141)
-//                 // Jika val1 adalah Latitude (negatif), tukar ke [Lng, Lat]
-//                 if ($val1 >= -11 && $val1 <= 6 && $val2 >= 95 && $val2 <= 141) {
-//                     $fixedCoords[] = [$val2, $val1]; 
-//                 } else {
-//                     $fixedCoords[] = [$val1, $val2];
-//                 }
-//             }
-
-//             // Pastikan poligon tertutup (titik awal = titik akhir)
-//             if (count($fixedCoords) > 0 && $fixedCoords[0] !== end($fixedCoords)) {
-//                 $fixedCoords[] = $fixedCoords[0];
-//             }
-
-//             if (count($fixedCoords) >= 4) {
-//                 $allPolygons[] = $fixedCoords;
-//             }
-//         }
-
-//         if (empty($allPolygons)) {
-//             return response()->json([
-//                 'success' => false,
-//                 'message' => 'Format koordinat lahan tidak valid.'
-//             ], 400);
-//         }
-
-//         // Cache hasil Tile URL gabungan selama 6 jam
-//         $cacheKey = "all_lands_ndvi_tile_" . md5(json_encode($allPolygons)) . "_" . ($startDate ?? 'def') . "_" . ($endDate ?? 'def');
-
-//         try {
-//             $tileData = Cache::remember($cacheKey, now()->addHours(6), function () use ($allPolygons, $startDate, $endDate) {
-//                 $baseUrl = config('services.fastapi.base_url', env('FASTAPI_BASE_URL', 'http://127.0.0.1:8000'));
-
-//                 $payload = ['polygons' => $allPolygons];
-//                 if ($startDate) $payload['start_date'] = $startDate;
-//                 if ($endDate) $payload['end_date'] = $endDate;
-
-//                 $response = Http::timeout(60)->post("{$baseUrl}/api/v1/lands/all-ndvi-map-tile", $payload);
-
-//                 if ($response->successful()) {
-//                     return $response->json();
-//                 }
-
-//                 throw new \Exception("Gagal mengambil Tile Peta NDVI dari FastAPI Service.");
-//             });
-
-//             return response()->json([
-//                 'success' => true,
-//                 'data'    => $tileData['data'] ?? []
-//             ], 200);
-
-//         } catch (\Exception $e) {
-//             return response()->json([
-//                 'success' => false,
-//                 'message' => 'Terjadi kesalahan saat memuat peta visual seluruh lahan.',
-//                 'error'   => $e->getMessage()
-//             ], 500);
-//         }
-//     }
-
-public function getNdviHistory(Request $request, $id)
+// Tambahkan deklarasi method/function ini sebelum variabel $daysBack:
+    public function getNdviHistory(Request $request, $id)
     {
-        Log::info("=== [START] getNdviHistory untuk Land ID: {$id} ===");
-
         $land = Land::find($id);
 
         if (!$land) {
-            Log::warning("Land ID {$id} tidak ditemukan di database.");
             return response()->json([
                 'success' => false,
                 'message' => 'Data lahan tidak ditemukan.'
@@ -564,83 +390,54 @@ public function getNdviHistory(Request $request, $id)
 
         $rawCoords = $land->polygon_coordinates;
 
-        if (is_string($rawCoords)) {
-            $rawCoords = json_decode($rawCoords, true);
-        }
-
         if (empty($rawCoords) || !is_array($rawCoords)) {
-            Log::warning("Land ID {$id} belum memiliki koordinat poligon yang valid.");
             return response()->json([
                 'success' => false,
                 'message' => 'Lahan belum memiliki koordinat poligon.'
             ], 400);
         }
 
+        // Mengambil parameter rentang hari (default 90 hari)
         $daysBack = (int) $request->input('days_back', 90);
+
+        // Cache key unik berdasarkan ID Lahan & Jumlah hari
         $cacheKey = "land_ndvi_history_{$land->id}_days{$daysBack}";
 
         try {
-            $historyData = Cache::remember($cacheKey, now()->addHours(12), function () use ($rawCoords, $daysBack, $land) {
+            $historyData = Cache::remember($cacheKey, now()->addHours(12), function () use ($rawCoords, $daysBack) {
                 
+                // Normalisasi Koordinat ke GeoJSON [Longitude, Latitude]
                 $fixedCoords = [];
                 foreach ($rawCoords as $pt) {
                     $val1 = (float) $pt[0];
                     $val2 = (float) $pt[1];
                     
-                    if ($val1 >= -11 && $val1 <= 6 && $val2 >= 95 && $val2 <= 141) {
+                    // Cek jika Latitude & Longitude terbalik
+                    if ($val1 < 10 && $val2 > 90) {
                         $fixedCoords[] = [$val2, $val1]; 
                     } else {
                         $fixedCoords[] = [$val1, $val2];
                     }
                 }
                 
-                // Penutupan poligon yang aman
-                $count = count($fixedCoords);
-                if ($count >= 3) {
-                    $first = $fixedCoords[0];
-                    $last = $fixedCoords[$count - 1];
-                    if ($first[0] != $last[0] || $first[1] != $last[1]) {
-                        $fixedCoords[] = $first;
-                    }
+                // Pastikan Poligon Tertutup (Titik awal == Titik akhir)
+                if ($fixedCoords[0] !== end($fixedCoords)) {
+                    $fixedCoords[] = $fixedCoords[0];
                 }
 
-                $defaultUrl = 'https://fast-api-production-v1.up.railway.app';
-                $baseUrl = config('services.fastapi.base_url', env('FASTAPI_BASE_URL', $defaultUrl));
+                $baseUrl = config('services.fastapi.base_url', env('FASTAPI_BASE_URL', 'http://ml-engine:8000'));
 
-                $endpoint = "{$baseUrl}/api/v1/land/ndvi-history";
-                $payload = [
+                // Tembak endpoint histori NDVI di FastAPI Python
+                $response = Http::timeout(60)->post("{$baseUrl}/api/v1/land/ndvi-history", [
                     'coordinates' => $fixedCoords,
                     'days_back'   => $daysBack,
-                ];
-
-                // LOG 1: Cek URL & Payload sebelum dikirim
-                Log::info("Mengirim Request NDVI History ke FastAPI [Land ID: {$land->id}]", [
-                    'endpoint'     => $endpoint,
-                    'sample_coords' => array_slice($fixedCoords, 0, 2),
-                    'total_coords'  => count($fixedCoords),
-                    'days_back'    => $daysBack
                 ]);
-
-                $response = Http::timeout(60)->post($endpoint, $payload);
-
-                // LOG 2: Cek HTTP Response Status
-                Log::info("Response FastAPI [Land ID: {$land->id}] Status: " . $response->status());
 
                 if ($response->successful()) {
-                    $resJson = $response->json();
-                    Log::info("Berhasil mengambil NDVI History [Land ID: {$land->id}]", [
-                        'data_count' => isset($resJson['data']) && is_array($resJson['data']) ? count($resJson['data']) : 0
-                    ]);
-                    return $resJson;
+                    return $response->json();
                 }
 
-                // LOG 3: Log error jika FastAPI mengembalikan status 4xx/5xx
-                Log::error("FastAPI Error Response [Land ID: {$land->id}]", [
-                    'status' => $response->status(),
-                    'body'   => $response->body()
-                ]);
-
-                throw new \Exception("Gagal mengambil data histori NDVI dari FastAPI Service: " . $response->body());
+                throw new \Exception("Gagal mengambil data histori NDVI dari FastAPI Service.");
             });
 
             return response()->json([
@@ -649,11 +446,6 @@ public function getNdviHistory(Request $request, $id)
             ], 200);
 
         } catch (\Exception $e) {
-            // LOG 4: Catch Exception global
-            Log::error("Exception pada getNdviHistory [Land ID: {$id}]: " . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat mengambil histori pertumbuhan.',
@@ -662,17 +454,18 @@ public function getNdviHistory(Request $request, $id)
         }
     } 
 
+    /**
+     * Mengambil 1 URL Tile Peta NDVI Gabungan untuk Seluruh Lahan
+     */
     public function getAllLandsNdviTile(Request $request)
     {
-        Log::info("=== [START] getAllLandsNdviTile ===");
-
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
 
+        // Ambil semua lahan yang punya koordinat
         $lands = Land::whereNotNull('polygon_coordinates')->get();
 
         if ($lands->isEmpty()) {
-            Log::warning("getAllLandsNdviTile: Tidak ada data lahan dengan polygon_coordinates.");
             return response()->json([
                 'success' => false,
                 'message' => 'Belum ada data lahan berkoordinat.'
@@ -684,6 +477,7 @@ public function getNdviHistory(Request $request, $id)
         foreach ($lands as $land) {
             $rawCoords = $land->polygon_coordinates;
 
+            // FIX 1: Decode manual jika data dari DB masih bertipe String JSON
             if (is_string($rawCoords)) {
                 $rawCoords = json_decode($rawCoords, true);
             }
@@ -695,6 +489,8 @@ public function getNdviHistory(Request $request, $id)
                 $val1 = (float) $pt[0];
                 $val2 = (float) $pt[1];
 
+                // FIX 2: Cek akurat rentang Latitude Indonesia (-11 s/d 6) & Longitude (95 s/d 141)
+                // Jika val1 adalah Latitude (negatif), tukar ke [Lng, Lat]
                 if ($val1 >= -11 && $val1 <= 6 && $val2 >= 95 && $val2 <= 141) {
                     $fixedCoords[] = [$val2, $val1]; 
                 } else {
@@ -702,62 +498,41 @@ public function getNdviHistory(Request $request, $id)
                 }
             }
 
-            $count = count($fixedCoords);
-            if ($count >= 3) {
-                $first = $fixedCoords[0];
-                $last = $fixedCoords[$count - 1];
-                if ($first[0] != $last[0] || $first[1] != $last[1]) {
-                    $fixedCoords[] = $first;
-                }
+            // Pastikan poligon tertutup (titik awal = titik akhir)
+            if (count($fixedCoords) > 0 && $fixedCoords[0] !== end($fixedCoords)) {
+                $fixedCoords[] = $fixedCoords[0];
+            }
+
+            if (count($fixedCoords) >= 4) {
                 $allPolygons[] = $fixedCoords;
             }
         }
 
         if (empty($allPolygons)) {
-            Log::warning("getAllLandsNdviTile: Tidak ada poligon yang valid setelah dinormalisasi.");
             return response()->json([
                 'success' => false,
                 'message' => 'Format koordinat lahan tidak valid.'
             ], 400);
         }
 
+        // Cache hasil Tile URL gabungan selama 6 jam
         $cacheKey = "all_lands_ndvi_tile_" . md5(json_encode($allPolygons)) . "_" . ($startDate ?? 'def') . "_" . ($endDate ?? 'def');
 
         try {
             $tileData = Cache::remember($cacheKey, now()->addHours(6), function () use ($allPolygons, $startDate, $endDate) {
-                
-                $defaultUrl = 'https://fast-api-production-v1.up.railway.app';
-                $baseUrl = config('services.fastapi.base_url', env('FASTAPI_BASE_URL', $defaultUrl));
+                $baseUrl = config('services.fastapi.base_url', env('FASTAPI_BASE_URL', 'http://127.0.0.1:8000'));
 
-                $endpoint = "{$baseUrl}/api/v1/lands/all-ndvi-map-tile";
                 $payload = ['polygons' => $allPolygons];
                 if ($startDate) $payload['start_date'] = $startDate;
                 if ($endDate) $payload['end_date'] = $endDate;
 
-                // LOG 1: Informasi kirim request Tile
-                Log::info("Mengirim Request All Lands Tile ke FastAPI", [
-                    'endpoint'      => $endpoint,
-                    'total_polygons' => count($allPolygons),
-                    'start_date'    => $startDate,
-                    'end_date'      => $endDate
-                ]);
-
-                $response = Http::timeout(60)->post($endpoint, $payload);
-
-                // LOG 2: Response Status
-                Log::info("Response FastAPI Tile Status: " . $response->status());
+                $response = Http::timeout(60)->post("{$baseUrl}/api/v1/lands/all-ndvi-map-tile", $payload);
 
                 if ($response->successful()) {
                     return $response->json();
                 }
 
-                // LOG 3: Log Body Error jika FastAPI gagal
-                Log::error("FastAPI Error Response [getAllLandsNdviTile]", [
-                    'status' => $response->status(),
-                    'body'   => $response->body()
-                ]);
-
-                throw new \Exception("Gagal mengambil Tile Peta NDVI dari FastAPI Service: " . $response->body());
+                throw new \Exception("Gagal mengambil Tile Peta NDVI dari FastAPI Service.");
             });
 
             return response()->json([
@@ -766,11 +541,6 @@ public function getNdviHistory(Request $request, $id)
             ], 200);
 
         } catch (\Exception $e) {
-            // LOG 4: Catch Exception global
-            Log::error("Exception pada getAllLandsNdviTile: " . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat memuat peta visual seluruh lahan.',
@@ -778,6 +548,7 @@ public function getNdviHistory(Request $request, $id)
             ], 500);
         }
     }
+
 
     public function destroy($id)
     {
@@ -1243,177 +1014,340 @@ public function getNdviHistory(Request $request, $id)
 
  
 
+    // public function getFertilizerRecommendation(Request $request, $landId, FastApiService $fastApiService)
+    // {
+    //     // 1. Load data lahan beserta tanaman terkait
+    //     $land = Land::with(['farmer', 'plants' => function($query) {
+    //         $query->latest(); 
+    //     }])->find($landId);
+
+    //     if (!$land) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Lahan tidak ditemukan'
+    //         ], 404);
+    //     }
+
+    //     $latestPlant = $land->plants->first();
+
+    //     // 2. Konversi luas lahan ke hektar
+    //     $areaInHectares = (float) $land->area;
+    //     $unitCleaned = strtolower(str_replace(' ', '', $land->unit));
+        
+    //     if (str_contains($unitCleaned, 'm2') || str_contains($unitCleaned, 'meterpersegi')) {
+    //         $areaInHectares = $areaInHectares / 10000;
+    //     }
+
+    //     // --- LOGIKA FALLBACK JIKA LAHAN BARU BELUM MEMILIKI RIWAYAT TANAMAN/PUPUK ---
+    //     $komoditasDefault = $latestPlant ? $latestPlant->name : 'Padi';
+    //     $faseDefault = $latestPlant ? $latestPlant->current_phase : 'Vegetatif';
+    //     $jenisPupuk = $request->input('jenis_pupuk_input', $latestPlant->last_fertilizer_type ?? 'NPK');
+        
+    //     // FIX: Ambil dari input request atau fallback ke database
+    //     $jumlahPupukSebelumnya = (float) $request->input(
+    //         'jumlah_pupuk_fase_sebelumnya_kg', 
+    //         (float) ($latestPlant->last_fertilizer_amount ?? 0.0)
+    //     );
+    //     $faseSebelumnya = $request->input('fase_tanam_sebelumnya', $latestPlant->last_phase ?? 'Tidak Ada');
+
+    //     // 3. Susun payload untuk FastAPI
+    //     $payload = [
+    //         "luas_lahan_hektar"               => $areaInHectares,
+    //         "jenis_komoditas"                 => $request->input('jenis_komoditas', $komoditasDefault), 
+    //         "fase_tanam_saat_ini"             => $request->input('fase_tanam_saat_ini', $faseDefault),
+    //         "jenis_pupuk_input"               => $jenisPupuk, 
+    //         "jumlah_pupuk_fase_sebelumnya_kg" => $jumlahPupukSebelumnya, // FIX: Menghilangkan variabel typo
+    //         "fase_tanam_sebelumnya"           => $faseSebelumnya,
+    //         "curah_hujan_mm"                  => (float) ($land->average_monthly_precipitation ?? 150.0),
+    //         "suhu_rata_rata_celcius"          => (float) ($land->average_temperature ?? 27.0),
+    //         "kelembapan_persen"               => (int) ($land->average_humidity ?? 80),
+    //     ];
+
+    //     // 4. Kirim ke Python FastAPI
+    //     $result = $fastApiService->predictFertilizer($payload);
+
+    //     if (!$result || !isset($result['recommended_dosage_kg'])) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Gagal mendapatkan prediksi dari Engine ML. Pastikan Service Engine ML berjalan.'
+    //         ], 502);
+    //     }
+
+    //     $recommendedKg = (float) $result['recommended_dosage_kg'];
+
+    //     // 🔒 Ambil data pupuk HANYA milik koperasi user login agar spek karung (50 kg) presisi
+    //     $cooperativeId = $request->user() ? $request->user()->cooperative_id : $land->cooperative_id;
+        
+    //     // Kita gunakan first() jika hanya butuh 1 pupuk teratas agar tidak duplikat record
+    //     $dbFertilizers = \App\Models\Fertilizer::where('cooperative_id', $cooperativeId)
+    //                         ->where('name', 'LIKE', '%' . $jenisPupuk . '%')
+    //                         ->get();
+
+    //     $recommendations = [];
+
+    //     if ($dbFertilizers->isNotEmpty()) {
+    //         foreach ($dbFertilizers as $index => $dbFertilizer) {
+    //             $beratPerKarung = (int) ($dbFertilizer->packaging_size_kg > 0 ? $dbFertilizer->packaging_size_kg : 50);
+    //             $hargaPerKg = (int) $dbFertilizer->price_per_kg;
+    //             $hargaPerKarung = $hargaPerKg * $beratPerKarung;
+
+    //             // --- KALKULASI UTUH & ECERAN ---
+    //             $fullBags = (int) floor($recommendedKg / $beratPerKarung); // Jumlah Karung Utuh
+    //             $remainingKg = round(fmod($recommendedKg, $beratPerKarung), 2); // Sisa Kg (Eceran)
+    //             $totalBagsCeil = (int) ceil($recommendedKg / $beratPerKarung); // Total Karung Pembulatan ke Atas
+
+    //             // Estimasi Total Harga (Sisa Kg dihitung per-kg)
+    //             $totalEstimatedPrice = ($fullBags * $hargaPerKarung) + ($remainingKg * $hargaPerKg);
+
+    //             $recommendations[] = [
+    //                 "id" => "rec-" . $landId . "-" . ($index + 1),
+    //                 "fertilizer_id" => $dbFertilizer->id,
+    //                 "fertilizer_code" => $dbFertilizer->fertilizer_code,
+    //                 "nama" => $dbFertilizer->name,
+    //                 "fungsi" => "Optimasi nutrisi untuk fase " . $payload['fase_tanam_saat_ini'] . " (Kemasan " . $beratPerKarung . " Kg)",
+    //                 "price_per_kg" => $hargaPerKg,
+    //                 "harga_per_karung" => $hargaPerKarung,
+                    
+    //                 // --- KEBUTUHAN UTAMA FE (DISPLAY REKOMENDASI) ---
+    //                 "total_recommended_kg" => round($recommendedKg, 2), // Misal: 120 Kg
+    //                 "full_bags_count"      => $fullBags,                 // Misal: 2 Karung
+    //                 "remaining_kg"         => $remainingKg,              // Misal: 20 Kg
+    //                 "formatted_text"       => "{$fullBags} Karung ({$beratPerKarung}kg)" . ($remainingKg > 0 ? " + {$remainingKg} Kg" : ""), 
+    //                 // Result text contoh: "2 Karung (50kg) + 20 Kg"
+
+    //                 "jumlah_karung" => $totalBagsCeil, // Tetap disajikan jika FE butuh hitungan opsi pembulatan penuh
+    //                 "total_estimated_price" => round($totalEstimatedPrice),
+                    
+    //                 "is_ml" => true,
+    //                 "packaging_size_kg" => $beratPerKarung,
+    //                 "image_url" => $dbFertilizer->image,
+                    
+    //                 "analysis_meta" => [
+    //                     "luas_lahan" => $payload['luas_lahan_hektar'] . " Ha",
+    //                     "komoditas" => $payload['jenis_komoditas'],
+    //                     "fase_tanam" => $payload['fase_tanam_saat_ini'],
+    //                     "suhu" => $payload['suhu_rata_rata_celcius'] . "°C",
+    //                     "kelembapan" => $payload['kelembapan_persen'] . "%",
+    //                     "curah_hujan" => $payload['curah_hujan_mm'] . " mm",
+    //                 ]
+    //             ];
+    //         }
+    //     } else {
+    //         // Fallback jika tidak ada data sama sekali di DB
+    //         $fallbackVariations = [
+    //             ["berat" => 50, "harga_kg" => 3000],
+    //         ];
+
+    //         foreach ($fallbackVariations as $index => $var) {
+    //             $beratPerKarung = $var['berat'];
+    //             $fullBags = (int) floor($recommendedKg / $beratPerKarung);
+    //             $remainingKg = round(fmod($recommendedKg, $beratPerKarung), 2);
+    //             $totalBagsCeil = (int) ceil($recommendedKg / $beratPerKarung);
+
+    //             $recommendations[] = [
+    //                 "id" => "rec-" . $landId . "-fallback-" . ($index + 1),
+    //                 "fertilizer_id" => null,
+    //                 "fertilizer_code" => "RAW-" . strtoupper($jenisPupuk) . "-" . $var['berat'] . "KG",
+    //                 "nama" => "Pupuk " . $jenisPupuk . " " . $var['berat'] . "kg",
+    //                 "fungsi" => "Optimasi nutrisi untuk fase " . $payload['fase_tanam_saat_ini'] . " (Kemasan Fallback " . $var['berat'] . " Kg)",
+    //                 "price_per_kg" => $var['harga_kg'],
+    //                 "harga_per_karung" => $var['harga_kg'] * $var['berat'],
+                    
+    //                 // --- KEBUTUHAN UTAMA FE ---
+    //                 "total_recommended_kg" => round($recommendedKg, 2),
+    //                 "full_bags_count"      => $fullBags,
+    //                 "remaining_kg"         => $remainingKg,
+    //                 "formatted_text"       => "{$fullBags} Karung ({$beratPerKarung}kg)" . ($remainingKg > 0 ? " + {$remainingKg} Kg" : ""),
+                    
+    //                 "jumlah_karung" => $totalBagsCeil,
+    //                 "is_ml" => false,
+    //                 "packaging_size_kg" => $var['berat'],
+    //                 "image_url" => null,
+                    
+    //                 "analysis_meta" => [
+    //                     "luas_lahan" => $payload['luas_lahan_hektar'] . " Ha",
+    //                     "komoditas" => $payload['jenis_komoditas'],
+    //                     "fase_tanam" => $payload['fase_tanam_saat_ini'],
+    //                     "suhu" => $payload['suhu_rata_rata_celcius'] . "°C",
+    //                     "kelembapan" => $payload['kelembapan_persen'] . "%",
+    //                     "curah_hujan" => $payload['curah_hujan_mm'] . " mm",
+    //                 ]
+    //             ];
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Rekomendasi pupuk berhasil dihitung!',
+    //         'data' => [
+    //             'recommendations' => $recommendations
+    //         ]
+    //     ], 200);
+    // }
+
+
     public function getFertilizerRecommendation(Request $request, $landId, FastApiService $fastApiService)
-    {
-        // 1. Load data lahan beserta tanaman terkait
-        $land = Land::with(['farmer', 'plants' => function($query) {
-            $query->latest(); 
-        }])->find($landId);
+{
+    // 1. Load data lahan beserta tanaman terkait
+    $land = Land::with(['farmer', 'plants' => function($query) {
+        $query->latest(); 
+    }])->find($landId);
 
-        if (!$land) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Lahan tidak ditemukan'
-            ], 404);
-        }
-
-        $latestPlant = $land->plants->first();
-
-        // 2. Konversi luas lahan ke hektar
-        $areaInHectares = (float) $land->area;
-        $unitCleaned = strtolower(str_replace(' ', '', $land->unit));
-        
-        if (str_contains($unitCleaned, 'm2') || str_contains($unitCleaned, 'meterpersegi')) {
-            $areaInHectares = $areaInHectares / 10000;
-        }
-
-        // --- LOGIKA FALLBACK JIKA LAHAN BARU BELUM MEMILIKI RIWAYAT TANAMAN/PUPUK ---
-        $komoditasDefault = $latestPlant ? $latestPlant->name : 'Padi';
-        $faseDefault = $latestPlant ? $latestPlant->current_phase : 'Vegetatif';
-        $jenisPupuk = $request->input('jenis_pupuk_input', $latestPlant->last_fertilizer_type ?? 'NPK');
-        
-        // FIX: Ambil dari input request atau fallback ke database
-        $jumlahPupukSebelumnya = (float) $request->input(
-            'jumlah_pupuk_fase_sebelumnya_kg', 
-            (float) ($latestPlant->last_fertilizer_amount ?? 0.0)
-        );
-        $faseSebelumnya = $request->input('fase_tanam_sebelumnya', $latestPlant->last_phase ?? 'Tidak Ada');
-
-        // 3. Susun payload untuk FastAPI
-        $payload = [
-            "luas_lahan_hektar"               => $areaInHectares,
-            "jenis_komoditas"                 => $request->input('jenis_komoditas', $komoditasDefault), 
-            "fase_tanam_saat_ini"             => $request->input('fase_tanam_saat_ini', $faseDefault),
-            "jenis_pupuk_input"               => $jenisPupuk, 
-            "jumlah_pupuk_fase_sebelumnya_kg" => $jumlahPupukSebelumnya, // FIX: Menghilangkan variabel typo
-            "fase_tanam_sebelumnya"           => $faseSebelumnya,
-            "curah_hujan_mm"                  => (float) ($land->average_monthly_precipitation ?? 150.0),
-            "suhu_rata_rata_celcius"          => (float) ($land->average_temperature ?? 27.0),
-            "kelembapan_persen"               => (int) ($land->average_humidity ?? 80),
-        ];
-
-        // 4. Kirim ke Python FastAPI
-        $result = $fastApiService->predictFertilizer($payload);
-
-        if (!$result || !isset($result['recommended_dosage_kg'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mendapatkan prediksi dari Engine ML. Pastikan Service Engine ML berjalan.'
-            ], 502);
-        }
-
-        $recommendedKg = (float) $result['recommended_dosage_kg'];
-
-        // 🔒 Ambil data pupuk HANYA milik koperasi user login agar spek karung (50 kg) presisi
-        $cooperativeId = $request->user() ? $request->user()->cooperative_id : $land->cooperative_id;
-        
-        // Kita gunakan first() jika hanya butuh 1 pupuk teratas agar tidak duplikat record
-        $dbFertilizers = \App\Models\Fertilizer::where('cooperative_id', $cooperativeId)
-                            ->where('name', 'LIKE', '%' . $jenisPupuk . '%')
-                            ->get();
-
-        $recommendations = [];
-
-        if ($dbFertilizers->isNotEmpty()) {
-            foreach ($dbFertilizers as $index => $dbFertilizer) {
-                $beratPerKarung = (int) ($dbFertilizer->packaging_size_kg > 0 ? $dbFertilizer->packaging_size_kg : 50);
-                $hargaPerKg = (int) $dbFertilizer->price_per_kg;
-                $hargaPerKarung = $hargaPerKg * $beratPerKarung;
-
-                // --- KALKULASI UTUH & ECERAN ---
-                $fullBags = (int) floor($recommendedKg / $beratPerKarung); // Jumlah Karung Utuh
-                $remainingKg = round(fmod($recommendedKg, $beratPerKarung), 2); // Sisa Kg (Eceran)
-                $totalBagsCeil = (int) ceil($recommendedKg / $beratPerKarung); // Total Karung Pembulatan ke Atas
-
-                // Estimasi Total Harga (Sisa Kg dihitung per-kg)
-                $totalEstimatedPrice = ($fullBags * $hargaPerKarung) + ($remainingKg * $hargaPerKg);
-
-                $recommendations[] = [
-                    "id" => "rec-" . $landId . "-" . ($index + 1),
-                    "fertilizer_id" => $dbFertilizer->id,
-                    "fertilizer_code" => $dbFertilizer->fertilizer_code,
-                    "nama" => $dbFertilizer->name,
-                    "fungsi" => "Optimasi nutrisi untuk fase " . $payload['fase_tanam_saat_ini'] . " (Kemasan " . $beratPerKarung . " Kg)",
-                    "price_per_kg" => $hargaPerKg,
-                    "harga_per_karung" => $hargaPerKarung,
-                    
-                    // --- KEBUTUHAN UTAMA FE (DISPLAY REKOMENDASI) ---
-                    "total_recommended_kg" => round($recommendedKg, 2), // Misal: 120 Kg
-                    "full_bags_count"      => $fullBags,                 // Misal: 2 Karung
-                    "remaining_kg"         => $remainingKg,              // Misal: 20 Kg
-                    "formatted_text"       => "{$fullBags} Karung ({$beratPerKarung}kg)" . ($remainingKg > 0 ? " + {$remainingKg} Kg" : ""), 
-                    // Result text contoh: "2 Karung (50kg) + 20 Kg"
-
-                    "jumlah_karung" => $totalBagsCeil, // Tetap disajikan jika FE butuh hitungan opsi pembulatan penuh
-                    "total_estimated_price" => round($totalEstimatedPrice),
-                    
-                    "is_ml" => true,
-                    "packaging_size_kg" => $beratPerKarung,
-                    "image_url" => $dbFertilizer->image,
-                    
-                    "analysis_meta" => [
-                        "luas_lahan" => $payload['luas_lahan_hektar'] . " Ha",
-                        "komoditas" => $payload['jenis_komoditas'],
-                        "fase_tanam" => $payload['fase_tanam_saat_ini'],
-                        "suhu" => $payload['suhu_rata_rata_celcius'] . "°C",
-                        "kelembapan" => $payload['kelembapan_persen'] . "%",
-                        "curah_hujan" => $payload['curah_hujan_mm'] . " mm",
-                    ]
-                ];
-            }
-        } else {
-            // Fallback jika tidak ada data sama sekali di DB
-            $fallbackVariations = [
-                ["berat" => 50, "harga_kg" => 3000],
-            ];
-
-            foreach ($fallbackVariations as $index => $var) {
-                $beratPerKarung = $var['berat'];
-                $fullBags = (int) floor($recommendedKg / $beratPerKarung);
-                $remainingKg = round(fmod($recommendedKg, $beratPerKarung), 2);
-                $totalBagsCeil = (int) ceil($recommendedKg / $beratPerKarung);
-
-                $recommendations[] = [
-                    "id" => "rec-" . $landId . "-fallback-" . ($index + 1),
-                    "fertilizer_id" => null,
-                    "fertilizer_code" => "RAW-" . strtoupper($jenisPupuk) . "-" . $var['berat'] . "KG",
-                    "nama" => "Pupuk " . $jenisPupuk . " " . $var['berat'] . "kg",
-                    "fungsi" => "Optimasi nutrisi untuk fase " . $payload['fase_tanam_saat_ini'] . " (Kemasan Fallback " . $var['berat'] . " Kg)",
-                    "price_per_kg" => $var['harga_kg'],
-                    "harga_per_karung" => $var['harga_kg'] * $var['berat'],
-                    
-                    // --- KEBUTUHAN UTAMA FE ---
-                    "total_recommended_kg" => round($recommendedKg, 2),
-                    "full_bags_count"      => $fullBags,
-                    "remaining_kg"         => $remainingKg,
-                    "formatted_text"       => "{$fullBags} Karung ({$beratPerKarung}kg)" . ($remainingKg > 0 ? " + {$remainingKg} Kg" : ""),
-                    
-                    "jumlah_karung" => $totalBagsCeil,
-                    "is_ml" => false,
-                    "packaging_size_kg" => $var['berat'],
-                    "image_url" => null,
-                    
-                    "analysis_meta" => [
-                        "luas_lahan" => $payload['luas_lahan_hektar'] . " Ha",
-                        "komoditas" => $payload['jenis_komoditas'],
-                        "fase_tanam" => $payload['fase_tanam_saat_ini'],
-                        "suhu" => $payload['suhu_rata_rata_celcius'] . "°C",
-                        "kelembapan" => $payload['kelembapan_persen'] . "%",
-                        "curah_hujan" => $payload['curah_hujan_mm'] . " mm",
-                    ]
-                ];
-            }
-        }
-
+    if (!$land) {
         return response()->json([
-            'success' => true,
-            'message' => 'Rekomendasi pupuk berhasil dihitung!',
-            'data' => [
-                'recommendations' => $recommendations
-            ]
-        ], 200);
+            'success' => false,
+            'message' => 'Lahan tidak ditemukan'
+        ], 404);
     }
 
+    $latestPlant = $land->plants->first();
+
+    // 2. Konversi luas lahan ke hektar
+    $areaInHectares = (float) $land->area;
+    $unitCleaned = strtolower(str_replace(' ', '', $land->unit));
+    
+    if (str_contains($unitCleaned, 'm2') || str_contains($unitCleaned, 'meterpersegi')) {
+        $areaInHectares = $areaInHectares / 10000;
+    }
+
+    // --- LOGIKA FALLBACK JIKA LAHAN BARU BELUM MEMILIKI RIWAYAT TANAMAN/PUPUK ---
+    $komoditasDefault = $latestPlant ? $latestPlant->name : 'Padi';
+    $faseDefault = $latestPlant ? $latestPlant->current_phase : 'Vegetatif';
+    $jenisPupuk = $request->input('jenis_pupuk_input', $latestPlant->last_fertilizer_type ?? 'NPK');
+    
+    $jumlahPupukSebelumnya = (float) $request->input(
+        'jumlah_pupuk_fase_sebelumnya_kg', 
+        (float) ($latestPlant->last_fertilizer_amount ?? 0.0)
+    );
+    $faseSebelumnya = $request->input('fase_tanam_sebelumnya', $latestPlant->last_phase ?? 'Tidak Ada');
+
+    // Ambil nilai NDVI dari request atau kolom current_ndvi pada DB lahan (fallback: 0.45)
+    $ndviValue = (float) $request->input('ndvi', $land->current_ndvi ?? 0.45);
+
+    // 3. Susun payload untuk FastAPI
+    $payload = [
+        "luas_lahan_hektar"               => $areaInHectares,
+        "jenis_komoditas"                 => $request->input('jenis_komoditas', $komoditasDefault), 
+        "fase_tanam_saat_ini"             => $request->input('fase_tanam_saat_ini', $faseDefault),
+        "jenis_pupuk_input"               => $jenisPupuk, 
+        "jumlah_pupuk_fase_sebelumnya_kg" => $jumlahPupukSebelumnya,
+        "fase_tanam_sebelumnya"           => $faseSebelumnya,
+        "curah_hujan_mm"                  => (float) ($land->average_monthly_precipitation ?? 150.0),
+        "suhu_rata_rata_celcius"          => (float) ($land->average_temperature ?? 27.0),
+        "kelembapan_persen"               => (int) ($land->average_humidity ?? 80),
+        "ndvi"                            => $ndviValue,
+    ];
+
+    // 4. Kirim ke Python FastAPI
+    $result = $fastApiService->predictFertilizer($payload);
+
+    if (!$result || !isset($result['recommended_dosage_kg'])) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mendapatkan prediksi dari Engine ML. Pastikan Service Engine ML berjalan.'
+        ], 502);
+    }
+
+    $recommendedKg = (float) $result['recommended_dosage_kg'];
+
+    // 🔒 Ambil data pupuk HANYA milik koperasi user login agar spek karung (50 kg) presisi
+    $cooperativeId = $request->user() ? $request->user()->cooperative_id : $land->cooperative_id;
+    
+    $dbFertilizers = \App\Models\Fertilizer::where('cooperative_id', $cooperativeId)
+                        ->where('name', 'LIKE', '%' . $jenisPupuk . '%')
+                        ->get();
+
+    $recommendations = [];
+
+    if ($dbFertilizers->isNotEmpty()) {
+        foreach ($dbFertilizers as $index => $dbFertilizer) {
+            $beratPerKarung = (int) ($dbFertilizer->packaging_size_kg > 0 ? $dbFertilizer->packaging_size_kg : 50);
+            $hargaPerKg = (int) $dbFertilizer->price_per_kg;
+            $hargaPerKarung = $hargaPerKg * $beratPerKarung;
+
+            $fullBags = (int) floor($recommendedKg / $beratPerKarung);
+            $remainingKg = round(fmod($recommendedKg, $beratPerKarung), 2);
+            $totalBagsCeil = (int) ceil($recommendedKg / $beratPerKarung);
+
+            $totalEstimatedPrice = ($fullBags * $hargaPerKarung) + ($remainingKg * $hargaPerKg);
+
+            $recommendations[] = [
+                "id" => "rec-" . $landId . "-" . ($index + 1),
+                "fertilizer_id" => $dbFertilizer->id,
+                "fertilizer_code" => $dbFertilizer->fertilizer_code,
+                "nama" => $dbFertilizer->name,
+                "fungsi" => "Optimasi nutrisi untuk fase " . $payload['fase_tanam_saat_ini'] . " (Kemasan " . $beratPerKarung . " Kg)",
+                "price_per_kg" => $hargaPerKg,
+                "harga_per_karung" => $hargaPerKarung,
+                "total_recommended_kg" => round($recommendedKg, 2),
+                "full_bags_count"      => $fullBags,
+                "remaining_kg"         => $remainingKg,
+                "formatted_text"       => "{$fullBags} Karung ({$beratPerKarung}kg)" . ($remainingKg > 0 ? " + {$remainingKg} Kg" : ""), 
+                "jumlah_karung" => $totalBagsCeil,
+                "total_estimated_price" => round($totalEstimatedPrice),
+                "is_ml" => true,
+                "packaging_size_kg" => $beratPerKarung,
+                "image_url" => $dbFertilizer->image,
+                "analysis_meta" => [
+                    "luas_lahan" => $payload['luas_lahan_hektar'] . " Ha",
+                    "komoditas" => $payload['jenis_komoditas'],
+                    "fase_tanam" => $payload['fase_tanam_saat_ini'],
+                    "suhu" => $payload['suhu_rata_rata_celcius'] . "°C",
+                    "kelembapan" => $payload['kelembapan_persen'] . "%",
+                    "curah_hujan" => $payload['curah_hujan_mm'] . " mm",
+                    "ndvi" => $payload['ndvi'],
+                ]
+            ];
+        }
+    } else {
+        // Fallback jika tidak ada data sama sekali di DB
+        $fallbackVariations = [
+            ["berat" => 50, "harga_kg" => 3000],
+        ];
+
+        foreach ($fallbackVariations as $index => $var) {
+            $beratPerKarung = $var['berat'];
+            $fullBags = (int) floor($recommendedKg / $beratPerKarung);
+            $remainingKg = round(fmod($recommendedKg, $beratPerKarung), 2);
+            $totalBagsCeil = (int) ceil($recommendedKg / $beratPerKarung);
+
+            $recommendations[] = [
+                "id" => "rec-" . $landId . "-fallback-" . ($index + 1),
+                "fertilizer_id" => null,
+                "fertilizer_code" => "RAW-" . strtoupper($jenisPupuk) . "-" . $var['berat'] . "KG",
+                "nama" => "Pupuk " . $jenisPupuk . " " . $var['berat'] . "kg",
+                "fungsi" => "Optimasi nutrisi untuk fase " . $payload['fase_tanam_saat_ini'] . " (Kemasan Fallback " . $var['berat'] . " Kg)",
+                "price_per_kg" => $var['harga_kg'],
+                "harga_per_karung" => $var['harga_kg'] * $var['berat'],
+                "total_recommended_kg" => round($recommendedKg, 2),
+                "full_bags_count"      => $fullBags,
+                "remaining_kg"         => $remainingKg,
+                "formatted_text"       => "{$fullBags} Karung ({$beratPerKarung}kg)" . ($remainingKg > 0 ? " + {$remainingKg} Kg" : ""),
+                "jumlah_karung" => $totalBagsCeil,
+                "is_ml" => false,
+                "packaging_size_kg" => $var['berat'],
+                "image_url" => null,
+                "analysis_meta" => [
+                    "luas_lahan" => $payload['luas_lahan_hektar'] . " Ha",
+                    "komoditas" => $payload['jenis_komoditas'],
+                    "fase_tanam" => $payload['fase_tanam_saat_ini'],
+                    "suhu" => $payload['suhu_rata_rata_celcius'] . "°C",
+                    "kelembapan" => $payload['kelembapan_persen'] . "%",
+                    "curah_hujan" => $payload['curah_hujan_mm'] . " mm",
+                    "ndvi" => $payload['ndvi'],
+                ]
+            ];
+        }
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Rekomendasi pupuk berhasil dihitung!',
+        'data' => [
+            'recommendations' => $recommendations
+        ]
+    ], 200);
+}
 
 
     /**

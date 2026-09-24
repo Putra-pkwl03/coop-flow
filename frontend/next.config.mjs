@@ -5,14 +5,13 @@
 
 // const withPWA = withPWAInit({
 //   dest: 'public',
-//   disable: isDev, 
+//   disable: isDev, // PWA mati di dev mode (sudah benar)
 //   register: !isDev,
 //   skipWaiting: true,
 //   fallbacks: {
 //     document: '/offline',
 //   },
 //   runtimeCaching: [
-//     // 1. Cache Tile Peta Spasial
 //     {
 //       urlPattern: /^https?:\/\/(server\.arcgisonline\.com|.*\.tile\.openstreetmap\.org|.*\.basemaps\.cartocdn\.com|.*\.google\.com\/vt\/lyrs=.*)\/.*$/i,
 //       handler: 'CacheFirst',
@@ -27,8 +26,6 @@
 //         },
 //       },
 //     },
-
-//     // 2. Caching Halaman Navigasi
 //     {
 //       urlPattern: ({ request }) => request.mode === 'navigate',
 //       handler: 'NetworkFirst',
@@ -44,23 +41,17 @@
 //         },
 //       },
 //     },
-
 //     ...defaultCache,
 //   ],
 // });
 
+
 // /** @type {import('next').NextConfig} */
 // const nextConfig = {
-//   // Aktifkan ini agar Next.js menghasilkan file /app/server.js untuk Docker
 //   output: 'standalone', 
+//   turbopack: {}, // Kunci agar Next 16 Turbopack tidak crash
 //   typescript: {
 //     ignoreBuildErrors: true, 
-//   },
-//   webpack: (config, { dev }) => {
-//     if (dev) {
-//       config.devtool = 'source-map';
-//     }
-//     return config;
 //   },
 //   async redirects() {
 //     return [
