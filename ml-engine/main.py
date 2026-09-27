@@ -72,27 +72,27 @@ async def lifespan(app: FastAPI):
 
     # [TAMBAHAN 2]: Load Model IndoBERT Voice Navigation dari Hugging Face Hub
  # [TAMBAHAN 2]: Load Model IndoBERT Voice Navigation dari Hugging Face Hub
-    try:
-        import torch
-        from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
+    # try:
+    #     import torch
+    #     from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
-        hf_repo_id = os.getenv("HF_MODEL_REPO", "putra03/model-indo-bert")
-        print(
-            f"INFO: Memuat model IndoBERT Voice Navigation dari Hugging Face ({hf_repo_id})..."
-        )
+    #     hf_repo_id = os.getenv("HF_MODEL_REPO", "putra03/model-indo-bert")
+    #     print(
+    #         f"INFO: Memuat model IndoBERT Voice Navigation dari Hugging Face ({hf_repo_id})..."
+    #     )
 
-        tokenizer = AutoTokenizer.from_pretrained(hf_repo_id)
-        model = AutoModelForSequenceClassification.from_pretrained(
-            hf_repo_id,
-            torch_dtype=torch.float32,
-        )
+    #     tokenizer = AutoTokenizer.from_pretrained(hf_repo_id)
+    #     model = AutoModelForSequenceClassification.from_pretrained(
+    #         hf_repo_id,
+    #         torch_dtype=torch.float32,
+    #     )
 
-        storage_model["indobert_classifier"] = pipeline(
-            "text-classification", model=model, tokenizer=tokenizer
-        )
-        print("INFO: Model IndoBERT Voice Navigation berhasil dimuat.")
-    except Exception as e:
-        print(f"ERROR: Gagal memuat model IndoBERT dari Hugging Face: {str(e)}")
+    #     storage_model["indobert_classifier"] = pipeline(
+    #         "text-classification", model=model, tokenizer=tokenizer
+    #     )
+    #     print("INFO: Model IndoBERT Voice Navigation berhasil dimuat.")
+    # except Exception as e:
+    #     print(f"ERROR: Gagal memuat model IndoBERT dari Hugging Face: {str(e)}")
 
     yield
     storage_model.clear()
