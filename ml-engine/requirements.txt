@@ -12,6 +12,3 @@ earthengine-api
 google-auth
 torch==2.2.1+cpu
 transformers==4.38.2
-accelerate
-optimum[onnxruntime]
-onnxruntime

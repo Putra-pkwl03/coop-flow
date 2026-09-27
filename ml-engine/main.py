@@ -71,24 +71,24 @@ async def lifespan(app: FastAPI):
     #     print(f"ERROR: Gagal memuat model IndoBERT: {str(e)}")
 
     # [TAMBAHAN 2]: Load Model IndoBERT Voice Navigation dari Hugging Face Hub
- # [TAMBAHAN 2]: Load Model IndoBERT Voice Navigation dari Hugging Face Hub (Sangat Hemat RAM)
+ # [TAMBAHAN 2]: Load Model IndoBERT Voice Navigation dari Hugging Face Hub
     try:
-        from optimum.pipelines import pipeline
-        from transformers import AutoTokenizer
+        import torch
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
         hf_repo_id = os.getenv("HF_MODEL_REPO", "putra03/model-indo-bert")
         print(
-            f"INFO: Memuat model IndoBERT (ONNX Runtime) dari Hugging Face ({hf_repo_id})..."
+            f"INFO: Memuat model IndoBERT Voice Navigation dari Hugging Face ({hf_repo_id})..."
         )
 
         tokenizer = AutoTokenizer.from_pretrained(hf_repo_id)
+        model = AutoModelForSequenceClassification.from_pretrained(
+            hf_repo_id,
+            torch_dtype=torch.float32,
+        )
 
-        # Gunakan accelerator="ort" (ONNX Runtime)
         storage_model["indobert_classifier"] = pipeline(
-            "text-classification",
-            model=hf_repo_id,
-            tokenizer=tokenizer,
-            accelerator="ort",  # <--- Perbaikan di baris ini
+            "text-classification", model=model, tokenizer=tokenizer
         )
         print("INFO: Model IndoBERT Voice Navigation berhasil dimuat.")
     except Exception as e:
