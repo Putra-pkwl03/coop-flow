@@ -72,15 +72,25 @@ async def lifespan(app: FastAPI):
 
     # [TAMBAHAN 2]: Load Model IndoBERT Voice Navigation dari Hugging Face Hub
     try:
-        # ID Repository Hugging Face
-        hf_repo_id = os.getenv("HF_MODEL_REPO", "putra03/model-indo-bert")
+        import torch
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+        hf_repo_id = os.getenv("HF_MODEL_REPO", "putra03/model-indo-bert")
         print(
             f"INFO: Memuat model IndoBERT Voice Navigation dari Hugging Face ({hf_repo_id})..."
         )
 
+        # 1. Load Tokenizer
+        tokenizer = AutoTokenizer.from_pretrained(hf_repo_id)
+
+        # 2. Load Model dengan mode hemat RAM (low_cpu_mem_usage & float16)
+        model = AutoModelForSequenceClassification.from_pretrained(
+            hf_repo_id, torch_dtype=torch.float16, low_cpu_mem_usage=True
+        )
+
+        # 3. Masukkan ke pipeline
         storage_model["indobert_classifier"] = pipeline(
-            "text-classification", model=hf_repo_id, tokenizer=hf_repo_id
+            "text-classification", model=model, tokenizer=tokenizer
         )
         print("INFO: Model IndoBERT Voice Navigation berhasil dimuat.")
     except Exception as e:

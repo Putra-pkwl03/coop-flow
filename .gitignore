@@ -1,5 +1,7 @@
 # Mengabaikan file credential
 ml-engine/credentials/*.json
+ml-engine/model/*.safetensors
+
 *.json
 
 echo "ml-engine/model/" >> .gitignore
