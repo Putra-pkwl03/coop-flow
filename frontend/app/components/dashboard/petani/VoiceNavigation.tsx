@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 import Swal from 'sweetalert2';
+import api from '@/app/lib/axios'; 
 
 interface VoiceNavigationProps {
   userName?: string;
@@ -51,235 +52,29 @@ export default function VoiceNavigation({ userName, onNavigate }: VoiceNavigatio
   }, []);
 
   // 2. HELPER SCROLL UNIVERSAL
-  const handleScroll = (direction: 'down' | 'up' | 'top' | 'bottom') => {
+  const handleScroll = (direction: 'DOWN' | 'UP' | 'TOP' | 'BOTTOM') => {
     if (typeof window === 'undefined') return;
 
     const scrollAmount = window.innerHeight * 0.7;
     const scrollContainer = document.querySelector('.overflow-y-auto') || document.documentElement || document.body;
 
-    if (direction === 'down') {
+    if (direction === 'DOWN') {
       window.scrollBy({ top: scrollAmount, behavior: 'smooth' });
       scrollContainer.scrollBy({ top: scrollAmount, behavior: 'smooth' });
-    } else if (direction === 'up') {
+    } else if (direction === 'UP') {
       window.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
       scrollContainer.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
-    } else if (direction === 'top') {
+    } else if (direction === 'TOP') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (direction === 'bottom') {
+    } else if (direction === 'BOTTOM') {
       const maxScroll = Math.max(document.body.scrollHeight, scrollContainer.scrollHeight);
       window.scrollTo({ top: maxScroll, behavior: 'smooth' });
       scrollContainer.scrollTo({ top: maxScroll, behavior: 'smooth' });
     }
   };
 
-  // 3. HELPER MULAI MENDENGARKAN
-  const startListening = useCallback(() => {
-    if (!isUserActivatedRef.current || isSpeakingRef.current) return;
-
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Fitur Tidak Didukung',
-        text: 'Browser ini belum mendukung navigasi suara.',
-      });
-      return;
-    }
-
-    if (!recognitionRef.current) {
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'id-ID';
-      recognition.continuous = true;
-      recognition.interimResults = false;
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        setTranscript('Mendengarkan...');
-      };
-
-      recognition.onresult = (event: any) => {
-        if (isSpeakingRef.current) return;
-
-        const lastIndex = event.results.length - 1;
-        const rawText = event.results[lastIndex][0].transcript.toLowerCase().trim();
-        const text = rawText.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '');
-
-        setTranscript(text);
-
-        // --- A. PERINTAH MATIKAN MIKROFON ---
-        if (
-          text.includes('matikan') ||
-          text.includes('stop') ||
-          text.includes('berhenti') ||
-          text.includes('tutup mik') ||
-          text.includes('off') ||
-          text.includes('diam')
-        ) {
-          isUserActivatedRef.current = false;
-          speakText('Baik, mikrofon dimatikan.', () => {
-            stopListening();
-          });
-          return;
-        }
-
-        // --- B. PERINTAH SCROLL / GULIR ---
-        else if (
-          text.includes('paling bawah') ||
-          text.includes('dasar') ||
-          text.includes('paling akhir') ||
-          text.includes('ujung bawah')
-        ) {
-          handleScroll('bottom');
-          toastSuccess('Menggulir ke paling bawah');
-        } else if (
-          text.includes('paling atas') ||
-          text.includes('puncak') ||
-          text.includes('paling awal') ||
-          text.includes('ujung atas')
-        ) {
-          handleScroll('top');
-          toastSuccess('Menggulir ke paling atas');
-        } else if (
-          text.includes('bawah') ||
-          text.includes('turun') ||
-          text.includes('sekrol bawah') ||
-          text.includes('surol bawah') ||
-          text.includes('kebawah')
-        ) {
-          handleScroll('down');
-          toastSuccess('Menggulir ke bawah');
-        } else if (
-          text.includes('atas') ||
-          text.includes('naik') ||
-          text.includes('sekrol atas') ||
-          text.includes('surol atas') ||
-          text.includes('keatas')
-        ) {
-          handleScroll('up');
-          toastSuccess('Menggulir ke atas');
-        }
-
-        // --- C. NAVIGASI MENU ---
-        else if (
-          text.includes('lahan') ||
-          text.includes('kebun') ||
-          text.includes('sawah') ||
-          text.includes('padi') ||
-          text.includes('tanaman')
-        ) {
-          const res = getRandomResponse([
-            'Baik pak, mari kita lihat data lahan dan sawah Anda.',
-            'Siap, menampilkan informasi lahan pertanian Anda.',
-            'Membuka data kebun dan lahan Anda sekarang.',
-          ]);
-          speakAndNavigate(res, 'lands', text);
-        } else if (
-          text.includes('pupuk') ||
-          text.includes('koperasi') ||
-          text.includes('kdkmp') ||
-          text.includes('subsidi') ||
-          text.includes('stok')
-        ) {
-          const res = getRandomResponse([
-            'Baik, ini informasi stok dan pengambilan pupuk KDKMP.',
-            'Siap, membuka layanan pupuk untuk Anda.',
-            'Menampilkan menu pupuk dan ketersediaannya.',
-          ]);
-          speakAndNavigate(res, 'fertilizers', text);
-        } 
-        // 1. DIBEDAKAN: MENU TRANSAKSI / NOTA
-        else if (
-          text.includes('nota') ||
-          text.includes('transaksi') ||
-          text.includes('bukti') ||
-          text.includes('pembayaran')
-        ) {
-          const res = getRandomResponse([
-            'Baik, ini daftar nota dan transaksi Anda.',
-            'Membuka daftar nota pembayaran.',
-            'Menampilkan catatan transaksi Anda.',
-          ]);
-          speakAndNavigate(res, 'transactions', text);
-        } 
-        // 2. DITAMBAHKAN: MENU RIWAYAT & JADWAL PEMUPUKAN
-        else if (
-          text.includes('riwayat') ||
-          text.includes('jadwal') ||
-          text.includes('pemupukan') ||
-          text.includes('histori') ||
-          text.includes('history')
-        ) {
-          const res = getRandomResponse([
-            'Baik, membuka riwayat dan jadwal pemupukan Anda.',
-            'Siap, menampilkan catatan dan jadwal pemupukan.',
-            'Menampilkan riwayat pemupukan lahan Anda.',
-          ]);
-          speakAndNavigate(res, 'fertilizer-history', text);
-        } else if (
-          text.includes('beranda') ||
-          text.includes('home') ||
-          text.includes('awal') ||
-          text.includes('depan') ||
-          text.includes('utama')
-        ) {
-          const res = getRandomResponse([
-            'Baik, kembali ke halaman utama.',
-            'Siap, kita balik ke beranda.',
-            'Menampilkan menu utama.',
-          ]);
-          speakAndNavigate(res, 'home', text);
-        } else if (
-          text.includes('menu') ||
-          text.includes('bantuan') ||
-          text.includes('apa saja') ||
-          text.includes('pilihan')
-        ) {
-          const helpText =
-            'Anda bisa sebutkan menu Lahan, Pupuk, Nota, atau Riwayat Pemupukan. Gunakan kata turun atau bawah untuk geser layar, atau katakan matikan untuk berhenti.';
-          speakText(helpText);
-        } else {
-          const unknownText =
-            'Maaf, saya belum paham perintah itu. Anda bisa sebutkan Lahan, Pupuk, Nota, Riwayat Pemupukan, atau Perintah Bawah.';
-          speakText(unknownText, () => {
-            Swal.fire({
-              toast: true,
-              position: 'top',
-              icon: 'warning',
-              title: `Perintah "${text}" tidak dikenali`,
-              showConfirmButton: false,
-              timer: 2500,
-            });
-          });
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        if (event.error !== 'no-speech') {
-          setIsListening(false);
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-        if (isUserActivatedRef.current && !isSpeakingRef.current) {
-          try {
-            recognition.start();
-          } catch (e) {}
-        }
-      };
-
-      recognitionRef.current = recognition;
-    }
-
-    try {
-      recognitionRef.current.start();
-    } catch (e) {}
-  }, []);
-
-  // 4. HELPER TEXT-TO-SPEECH (TTS)
+  // 3. HELPER TEXT-TO-SPEECH (TTS)
   const speakText = useCallback(
     (text: string, onEndCallback?: () => void) => {
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -323,7 +118,7 @@ export default function VoiceNavigation({ userName, onNavigate }: VoiceNavigatio
         }
       }
     },
-    [startListening]
+    []
   );
 
   const speakAndNavigate = (
@@ -337,7 +132,148 @@ export default function VoiceNavigation({ userName, onNavigate }: VoiceNavigatio
     });
   };
 
-  // 5. TOGGLE UTAMA TOMBOL
+  // 4. ESEKUSI INTENT HASIL AI DARI LARAVEL BACKEND
+  const handleBackendIntent = (text: string, actionData: any) => {
+    const { type, target_route, direction, command } = actionData;
+
+    if (type === 'NAVIGATE') {
+      let responseMsg = 'Membuka menu yang diminta.';
+      let viewName = 'home';
+
+      if (target_route.includes('lands')) {
+        responseMsg = getRandomResponse([
+          'Baik pak, mari kita lihat data lahan dan sawah Anda.',
+          'Siap, menampilkan informasi lahan pertanian Anda.',
+        ]);
+        viewName = 'lands';
+      } else if (target_route.includes('fertilizers/history')) {
+        responseMsg = getRandomResponse([
+          'Baik, membuka riwayat dan jadwal pemupukan Anda.',
+          'Siap, menampilkan catatan dan jadwal pemupukan.',
+        ]);
+        viewName = 'fertilizer-history';
+      } else if (target_route.includes('fertilizers')) {
+        responseMsg = getRandomResponse([
+          'Baik, ini informasi stok dan pengambilan pupuk KDKMP.',
+          'Siap, membuka layanan pupuk untuk Anda.',
+        ]);
+        viewName = 'fertilizers';
+      } else if (target_route.includes('transactions')) {
+        responseMsg = getRandomResponse([
+          'Baik, ini daftar nota dan transaksi Anda.',
+          'Membuka daftar nota pembayaran.',
+        ]);
+        viewName = 'transactions';
+      } else if (target_route.includes('dashboard')) {
+        responseMsg = getRandomResponse([
+          'Baik, kembali ke halaman utama.',
+          'Siap, kita balik ke beranda.',
+        ]);
+        viewName = 'home';
+      }
+
+      speakAndNavigate(responseMsg, viewName, text);
+    } else if (type === 'SCROLL') {
+      handleScroll(direction);
+      const labels: Record<string, string> = {
+        DOWN: 'bawah',
+        UP: 'atas',
+        TOP: 'paling atas',
+        BOTTOM: 'paling bawah',
+      };
+      toastSuccess(`Menggulir ke ${labels[direction] || ''}`);
+    } else if (type === 'CONTROL' && command === 'STOP_MIC') {
+      isUserActivatedRef.current = false;
+      speakText('Baik, mikrofon dimatikan.', () => {
+        stopListening();
+      });
+    } else {
+      const unknownText = 'Maaf, saya belum paham perintah itu.';
+      speakText(unknownText, () => {
+        Swal.fire({
+          toast: true,
+          position: 'top',
+          icon: 'warning',
+          title: `Perintah "${text}" tidak dikenali`,
+          showConfirmButton: false,
+          timer: 2500,
+        });
+      });
+    }
+  };
+
+  // 5. HELPER MULAI MENDENGARKAN & MENGIRIM TEKS KE LARAVEL
+  const startListening = useCallback(() => {
+    if (!isUserActivatedRef.current || isSpeakingRef.current) return;
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Fitur Tidak Didukung',
+        text: 'Browser ini belum mendukung navigasi suara.',
+      });
+      return;
+    }
+
+    if (!recognitionRef.current) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'id-ID';
+      recognition.continuous = true;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setTranscript('Mendengarkan...');
+      };
+
+      recognition.onresult = async (event: any) => {
+        if (isSpeakingRef.current) return;
+
+        const lastIndex = event.results.length - 1;
+        const rawText = event.results[lastIndex][0].transcript.toLowerCase().trim();
+        const text = rawText.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '');
+
+        setTranscript(text);
+
+        // Kirim teks hasil suara ke Laravel -> IndoBERT Model
+        try {
+          const res = await api.post('/voice/command', { text });
+          if (res.data && res.data.status === 'success') {
+            handleBackendIntent(text, res.data.data.action);
+          }
+        } catch (error) {
+          console.error('Error voice command backend:', error);
+          speakText('Maaf, terjadi masalah koneksi saat memproses suara.');
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        if (event.error !== 'no-speech') {
+          setIsListening(false);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        if (isUserActivatedRef.current && !isSpeakingRef.current) {
+          try {
+            recognition.start();
+          } catch (e) {}
+        }
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    try {
+      recognitionRef.current.start();
+    } catch (e) {}
+  }, [speakText]);
+
+  // 6. TOGGLE UTAMA TOMBOL
   const toggleListening = () => {
     if (isListening || isUserActivatedRef.current) {
       isUserActivatedRef.current = false;

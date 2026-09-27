@@ -20,8 +20,8 @@ services:
     container_name: coopflow_backend
     volumes:
       - ./backend:/var/www
-    # depends_on:
-    #   - database
+    depends_on:
+      - database
 
   # 3. Web Server Service
   webserver:
@@ -59,12 +59,12 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - NODE_ENV=production        
-      # - NODE_ENV=development
+      # - NODE_ENV=production        
+      - NODE_ENV=development
       - PORT=3000
       - HOSTNAME=0.0.0.0  
-    command: node server.js       
-    # command: npm run dev   
+    # command: node server.js       
+    command: npm run dev   
 
   # frontend:
   #   build:

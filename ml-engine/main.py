@@ -9,6 +9,9 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+# [TAMBAHAN 1]: Import pipeline untuk IndoBERT
+from transformers import pipeline
+
 from gee_service import (
     init_gee, 
     calculate_land_ndvi, 
@@ -16,12 +19,12 @@ from gee_service import (
     get_all_lands_ndvi_map_tile
 )
 
-# Penampung objek pkl di level memory teratas
+# Penampung objek pkl & transformer model di level memory teratas
 storage_model = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Memuat berkas pkl model1, model2, dan inisialisasi GEE saat startup aplikasi."""
+    """Memuat berkas pkl model1, model2, model IndoBERT, dan inisialisasi GEE saat startup aplikasi."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     
     # 1. Inisialisasi Google Earth Engine
@@ -31,7 +34,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"WARNING: Gagal inisialisasi GEE (Cek file credentials): {str(e)}")
 
-    # 2. Load Model Machine Learning
+    # 2. Load Model Machine Learning (.pkl)
     try:
         model1_path = os.path.join(base_dir, "models", "model_pupuk_presisi.pkl")
         model2_path = os.path.join(base_dir, "models", "model2_pengadaan_koperasi.pkl")
@@ -50,6 +53,22 @@ async def lifespan(app: FastAPI):
 
     except Exception as e:
         print(f"ERROR: Gagal memuat berkas pkl: {str(e)}")
+
+    # [TAMBAHAN 2]: Load Model IndoBERT Voice Navigation
+    try:
+        indobert_path = os.path.join(base_dir, "model")  # Sesuaikan dengan lokasi folder hasil ekstrak zip
+        if os.path.exists(indobert_path):
+            print("INFO: Memuat model IndoBERT Voice Navigation...")
+            storage_model["indobert_classifier"] = pipeline(
+                "text-classification",
+                model=indobert_path,
+                tokenizer=indobert_path
+            )
+            print("INFO: Model IndoBERT Voice Navigation berhasil dimuat.")
+        else:
+            print(f"WARNING: Folder model IndoBERT '{indobert_path}' tidak ditemukan.")
+    except Exception as e:
+        print(f"ERROR: Gagal memuat model IndoBERT: {str(e)}")
 
     yield
     storage_model.clear()
@@ -107,6 +126,15 @@ class HistoryRequest(BaseModel):
     coordinates: List[List[float]]
     days_back: int = Field(default=90, description="Rentang hari ke belakang untuk grafik")
 
+# [TAMBAHAN 3]: Schema untuk Voice Intent Prediction
+class IntentRequest(BaseModel):
+    text: str = Field(..., example="pagi mas tolong buka data lahan sawah saya dong")
+
+class IntentResponse(BaseModel):
+    text: str
+    intent: str
+    confidence: float
+
 
 # ==========================================
 # CORE API ENDPOINTS
@@ -119,6 +147,41 @@ def check_status_via_browser():
         "engine": "COOP-FLOW ML & Earth Engine Service",
         "gee_status": "active"
     }
+
+# [TAMBAHAN 4]: Endpoint Prediksi Voice Intent
+@app.post("/api/v1/intent", response_model=IntentResponse)
+async def predict_voice_intent(payload: IntentRequest):
+    classifier = storage_model.get("indobert_classifier")
+    
+    if not classifier:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Model IndoBERT belum siap atau gagal dimuat saat startup."
+        )
+    
+    clean_text = payload.text.strip().lower()
+    if not clean_text:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Teks input tidak boleh kosong."
+        )
+    
+    try:
+        # Menjalankan proses ML IndoBERT di thread pool agar tidak mengunci Event Loop FastAPI
+        loop = asyncio.get_running_loop()
+        results = await loop.run_in_executor(None, lambda: classifier(clean_text))
+        result = results[0]
+
+        return IntentResponse(
+            text=payload.text,
+            intent=result["label"],
+            confidence=round(float(result["score"]), 4)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Error saat memproses prediksi intent: {str(e)}"
+        )
 
 
 @app.post("/api/v1/analyze-land")

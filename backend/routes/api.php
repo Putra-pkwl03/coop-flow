@@ -18,6 +18,7 @@ use App\Http\Controllers\FertilizerController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\ProcurementOrderController;
 use App\Http\Controllers\AdminLapanganDashboardController;
+use App\Http\Controllers\VoiceCommandController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +27,13 @@ use Illuminate\Support\Facades\Route;
 | Public Routes (Bisa diakses tanpa login)
 |--------------------------------------------------------------------------
 */
+
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok'], 200);
+});
+
+Route::post('/voice/command', [VoiceCommandController::class, 'processVoiceCommand']);
+
 Route::post('/register', [AuthController::class, 'register']); 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/cooperative/register', [CooperativeRegistrationController::class, 'register']);

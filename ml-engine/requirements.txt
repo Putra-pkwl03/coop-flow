@@ -1,3 +1,5 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 fastapi==0.110.0
 uvicorn[standard]==0.28.0
 pydantic==2.6.4
@@ -8,3 +10,5 @@ joblib==1.3.2
 prophet==1.1.5
 earthengine-api
 google-auth
+torch==2.2.1+cpu
+transformers==4.38.2

@@ -13,6 +13,9 @@ export interface FertilizerAnalysisMeta {
   suhu?: string;
   kelembapan?: string;
   curah_hujan?: string;
+  ndvi?: number | string;        // Sesuai key dari Backend Laravel
+  ndvi_value?: number | string;  // Fallback alternatif
+  ndvi_category?: string;
 }
 
 export interface CustomFertilizerItem {
@@ -75,6 +78,18 @@ interface LandPredictionCardProps {
   };
 }
 
+// Helper untuk generate kategori NDVI dari skor numerik
+const getNdviCategoryLabel = (score?: number | string | null): string => {
+  if (score === null || score === undefined || score === "") return "";
+  const num = typeof score === "string" ? parseFloat(score) : score;
+  if (isNaN(num)) return "";
+  
+  if (num >= 0.6) return "Sangat Baik";
+  if (num >= 0.4) return "Normal / Sedang";
+  if (num >= 0.2) return "Rendah";
+  return "Kritis";
+};
+
 export default function LandPredictionCard({ 
   land, 
   village, 
@@ -129,7 +144,6 @@ export default function LandPredictionCard({
           const defaultSummary = { totalBags: initialBags, totalCost: initialCost, totalKg: initialKg };
           setCurrentSummary(defaultSummary);
           
-          // PERBAIKAN: Ambil secara ketat id database pupuk (fertilizer_id)
           const defaultFertId = activeItem.fertilizer_id || (activeItem as any).fertilizer?.id || null;
 
           const defaultCustomBags: CustomizedBagOutput[] = Array.from({ length: initialBags }).map((_, idx) => ({
@@ -187,7 +201,6 @@ export default function LandPredictionCard({
     selectedItems: SelectedBagItem[];
   }) => {
     const formattedBags: CustomizedBagOutput[] = summary.selectedItems.map(item => {
-      // PERBAIKAN: Ambil fertilizer_id dari details (referensi database), hindari mengambil item.bagKey yang bertipe string
       const parentFertId = item.details.fertilizer_id || (item.details as any).fertilizer?.id || null;
       
       return {
@@ -220,7 +233,15 @@ export default function LandPredictionCard({
     });
   };
 
-  const activeMeta = recommendations.find((item) => item.analysis_meta)?.analysis_meta;
+  // Mengambil meta dari rekomendasi
+  const rawMeta = recommendations.find((item) => item.analysis_meta)?.analysis_meta;
+
+  // Normalisasi data meta agar mendukung penamaan BE ("ndvi") & FE ("ndvi_value")
+  const activeMeta = rawMeta ? {
+    ...rawMeta,
+    ndviDisplayValue: rawMeta.ndvi ?? rawMeta.ndvi_value ?? (land as any).current_ndvi ?? null,
+    ndviDisplayCategory: rawMeta.ndvi_category || getNdviCategoryLabel(rawMeta.ndvi ?? rawMeta.ndvi_value ?? (land as any).current_ndvi)
+  } : null;
 
   return (
     <div className={`w-full border rounded-lg p-5 transition-all duration-200 ${isOpen ? "border-emerald-500 bg-white shadow-md" : "border-gray-200 bg-gray-50/50 hover:bg-gray-50"}`}>
@@ -264,7 +285,7 @@ export default function LandPredictionCard({
             <div className="text-center py-6 text-xs text-gray-400">Tidak ada rekomendasi pupuk yang tersedia.</div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 w-full">
-              {/* KOLOM KRI */}
+              {/* KOLOM KIRI */}
               <div className="lg:col-span-8 space-y-4">
                 <FertilizerItemSelector 
                   recommendations={recommendations} 
@@ -288,6 +309,16 @@ export default function LandPredictionCard({
                     </div>
                     <div className="flex justify-between items-center"><span className="text-gray-400">Suhu / Lembap:</span> <span className="font-semibold text-gray-700">{activeMeta.suhu || "-"} / {activeMeta.kelembapan || "-"}</span></div>
                     <div className="flex justify-between items-center"><span className="text-gray-400">Curah Hujan:</span> <span className="font-semibold text-gray-700">{activeMeta.curah_hujan || "-"}</span></div>
+                    
+                    {/* TAMPILKAN NDVI DISINI */}
+                    {activeMeta.ndviDisplayValue !== null && activeMeta.ndviDisplayValue !== undefined && (
+                      <div className="flex justify-between items-center border-t pt-2 mt-2">
+                        <span className="text-gray-500 font-medium">Indeks NDVI:</span> 
+                        <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                          {activeMeta.ndviDisplayValue} {activeMeta.ndviDisplayCategory ? `(${activeMeta.ndviDisplayCategory})` : ""}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-4 text-[11px] text-gray-400 bg-gray-50 rounded-lg border border-dashed">
